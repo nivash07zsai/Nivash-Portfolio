@@ -1,0 +1,1380 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>GroundTruth</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+/* Layout: a working ledger tool. Header, four tabs, and an evidence drawer that slides in from the right whenever a number is tapped. */
+:root{
+  --paper:#FFFFFF; --card:#FFFFFF; --soft:#F5F7F6; --ink:#13202B; --muted:#55636E; --line:#D9DFDD;
+  --accent:#A85A16; --accent-soft:#F6E8D8; --focus:#1F6FB2;
+  --ok:#2E7A4E; --ok-bg:#E3F2E8; --bad:#B2412E; --bad-bg:#F8E4DF;
+  --one:#866A12; --one-bg:#F6EED3; --self:#6550A3; --self-bg:#ECE8F7;
+  --shade:rgba(19,32,43,.35);
+  --display:'Source Serif 4', Georgia, serif; --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+:root{color-scheme:light}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.brand h1{font-family:var(--display);font-size:30px;margin:0;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;color:var(--muted);max-width:60ch}
+.badge{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--card)}
+nav.tabs{display:flex;gap:4px;margin:16px 0 20px;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.page-h{padding-block:24px 4px}.ph{font-family:var(--display);font-size:clamp(28px,4vw,38px);margin:0 0 4px;letter-spacing:-.01em}
+.lede{color:var(--muted);margin:0 0 16px;max-width:75ch}
+h2{font-family:var(--display);font-size:24px;margin:0 0 6px;text-wrap:balance}
+h3{font-size:16px;margin:0 0 8px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.form{display:flex;flex-direction:column;gap:14px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:500}
+label.f input,label.f select{background:var(--soft);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:15px}
+.hint{font-size:12px;color:var(--muted);font-weight:400}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:5px 11px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tablewrap{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:14px}
+table.data th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px;border-bottom:1px solid var(--line);vertical-align:bottom}
+table.data td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.data tr.fit td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+button.ev{font-family:var(--mono);font-variant-numeric:tabular-nums;background:none;border:0;padding:0 0 1px;border-bottom:1px dashed var(--muted);cursor:pointer;color:inherit;white-space:nowrap}
+button.ev:hover{border-bottom-color:var(--accent);color:var(--accent)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:4px;vertical-align:middle}
+.d-ok{background:var(--ok)}.d-bad{background:var(--bad)}.d-one{background:var(--one)}.d-self{background:var(--self)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.s-ok{color:var(--ok);background:var(--ok-bg)}.s-bad{color:var(--bad);background:var(--bad-bg)}.s-one{color:var(--one);background:var(--one-bg)}.s-self{color:var(--self);background:var(--self-bg)}
+.tag{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin:10px 0 0}
+.result-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:10px}
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.pick .panel{padding:14px}
+.pick .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pick .v{font-family:var(--display);font-size:22px;margin:2px 0}
+.bars{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.bar{display:grid;grid-template-columns:90px 1fr 70px;gap:10px;align-items:center;font-size:14px}
+.bar .track{height:10px;background:var(--soft);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);transition:width .35s ease}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+.callout{background:var(--accent-soft);border-radius:8px;padding:12px 14px;font-size:14px;margin-top:14px}
+.btn{background:var(--ink);color:var(--paper);border:0;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:500}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* roadmap */
+.stage{margin-bottom:18px}
+.stage h3{display:flex;gap:10px;align-items:baseline}
+.stage h3 .when{font-weight:400;color:var(--muted);font-size:13px}
+ol.steps{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+ol.steps li{position:relative;padding:8px 0 10px 18px}
+ol.steps li::before{content:"";position:absolute;left:-6px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--card);border:2px solid var(--accent)}
+ol.steps li.warn::before{border-color:var(--bad)}
+.step-top{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between}
+.step-top b{font-weight:600}
+.date{font-family:var(--mono);font-size:13px;color:var(--accent);white-space:nowrap}
+.step-body{font-size:14px;color:var(--muted);margin-top:2px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+@media (max-width:640px){.compare{grid-template-columns:1fr}}
+.compare ul{margin:6px 0 0;padding-left:18px;font-size:14px}
+/* ask */
+.chat{display:flex;flex-direction:column;gap:12px;min-height:240px}
+.msg{max-width:78ch;padding:10px 14px;border-radius:10px;font-size:15px}
+.msg.user{align-self:flex-end;background:var(--ink);color:var(--paper)}
+.msg.bot{background:var(--card);border:1px solid var(--line)}
+.msg.bot p{margin:0 0 8px}.msg.bot p:last-child{margin:0}
+.msg.bot ul{margin:4px 0 8px;padding-left:20px}
+button.cite{font-family:var(--mono);font-size:12px;background:var(--accent-soft);color:var(--accent);border:0;border-radius:4px;padding:0 5px;cursor:pointer}
+.ask-bar{display:flex;gap:8px;margin-top:14px}
+.ask-bar input{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sugg button{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;font-size:13px;text-align:left}
+/* facts */
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px}
+.fact:hover{border-color:var(--accent)}
+.fact .q{font-weight:600}
+.fact .range{font-family:var(--mono);font-size:14px}
+.fact .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+/* drawer */
+.scrim{position:fixed;inset:0;background:var(--shade);z-index:20}
+aside.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--card);z-index:21;border-left:1px solid var(--line);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px);transform:translateX(0);transition:transform .25s ease}
+.drawer-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+.drawer-head h2{font-size:20px;margin:4px 0 0}
+.drawer-body{overflow-y:auto;padding:14px 18px 24px;display:flex;flex-direction:column;gap:12px}
+.src{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.src .val{font-family:var(--mono);font-size:18px}
+.src .who{font-size:13px;color:var(--muted)}
+.src .sells{font-size:13px}
+.reading{background:var(--soft);border-radius:8px;padding:10px 12px;font-size:14px}
+.x{background:none;border:1px solid var(--line);border-radius:7px;padding:4px 10px;cursor:pointer}
+.status-line{font-size:13px;color:var(--muted)}
+footer.foot{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+header.site{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--card);border-bottom:1px solid var(--line)}
+.site-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:16px;padding-block:10px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.logo{display:flex;align-items:center;gap:8px;background:none;border:0;cursor:pointer;font-family:var(--display);font-size:21px;font-weight:600;padding:4px 0;white-space:nowrap}
+.mark{width:18px;height:18px;border-radius:4px;background:linear-gradient(90deg,var(--accent) 0 33%,transparent 33% 40%,var(--accent) 40% 66%,transparent 66% 73%,var(--accent) 73%);opacity:.9}
+nav.menu{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0}
+nav.menu button{background:none;border:0;border-radius:7px;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav.menu button:hover{color:var(--ink);background:var(--soft)}
+nav.menu button[aria-selected="true"]{color:var(--ink);background:var(--accent-soft)}
+@media (max-width:640px){.site-in{flex-wrap:wrap;gap:6px}.site-in .badge{margin-left:auto}nav.menu{order:3;flex-basis:100%}}
+.eyebrow{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center;padding-block:40px 32px}
+@media (max-width:860px){.hero{grid-template-columns:1fr;padding-top:24px;gap:24px}}
+.hero-h{font-family:var(--display);font-size:clamp(34px,5vw,54px);line-height:1.05;letter-spacing:-.02em;margin:10px 0 14px;text-wrap:balance}
+.hero-p{font-size:18px;color:var(--muted);max-width:52ch;margin:0 0 22px}
+.btn.big{padding:12px 18px;font-size:16px}
+.hero-card{display:flex;flex-direction:column;gap:14px;margin:0;padding:20px}
+.hero-card figcaption{display:flex;flex-direction:column;gap:3px}
+.hero-card figcaption b{font-size:18px}
+.count-bars{display:flex;flex-direction:column;gap:7px}
+.cb{display:grid;grid-template-columns:96px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center}
+.cb-n{font-size:14px;grid-row:span 2}
+.cb-t{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}
+.cb-f{display:block;height:100%;background:var(--accent);border-radius:4px}
+.cb-s{font-size:12px;color:var(--muted)}
+.band{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:8px 0 40px}
+@media (max-width:860px){.band{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.band{grid-template-columns:1fr}}
+.stat{background:var(--card);padding:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.stat-n{font-family:var(--display);font-size:28px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ev-link{align-self:flex-start;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.sec{margin-bottom:44px}
+.sec-h{font-family:var(--display);font-size:28px;margin:0 0 16px}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media (max-width:960px){.tools{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.tools{grid-template-columns:1fr}}
+.tool{display:flex;flex-direction:column;gap:8px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;min-width:0}
+.tool:hover{border-color:var(--accent)}
+.tool b{font-size:17px}.tool span{color:var(--muted);font-size:14px;flex:1}
+.tool em{font-style:normal;color:var(--accent);font-weight:500;font-size:14px}
+.sec.two{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:start}
+@media (max-width:860px){.sec.two{grid-template-columns:1fr}}
+ol.how{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+ol.how li::marker{color:var(--accent);font-weight:600}
+.rule{background:var(--ink);color:var(--paper);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:10px}
+.rule .eyebrow{color:var(--accent)}
+.rule-h{font-family:var(--display);font-size:24px;line-height:1.2;margin:0}
+.rule p{margin:0}
+.foot-cols{display:grid;grid-template-columns:1fr 1fr 2fr;gap:24px}
+@media (max-width:700px){.foot-cols{grid-template-columns:1fr}}
+.foot-cols b{display:block;color:var(--ink);margin-bottom:6px}
+.foot-cols p{margin:0}
+.foot-cols button{display:block;background:none;border:0;padding:2px 0;color:var(--muted);cursor:pointer;text-align:left}
+.foot-cols button:hover{color:var(--accent)}
+
+.btn.cta{white-space:nowrap}
+@media (max-width:640px){.btn.cta{padding:7px 12px}}
+.sec-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.sec-top .sec-h{margin-bottom:6px}
+td.lead{background:var(--accent-soft);font-weight:600}
+.feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.ev-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ev-card .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.ev-card b{font-size:15px}
+.ev-card .what{font-size:13px;color:var(--muted)}
+.ev-card .city{font-size:12px;color:var(--muted)}
+.stg-Opened{color:var(--ok);background:var(--ok-bg)}.stg-Announced{color:var(--one);background:var(--one-bg)}.stg-Expansion{color:var(--self);background:var(--self-bg)}.stg-Lease{color:var(--accent);background:var(--accent-soft)}
+.inds{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:860px){.inds{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.inds{grid-template-columns:1fr}}
+.ind{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer}
+.ind:hover{border-color:var(--accent)}
+.ind .cities{font-family:var(--display);font-size:20px}
+.ind span{font-size:13px;color:var(--muted)}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:860px){.plans{grid-template-columns:1fr}}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.plan.hl{border:2px solid var(--accent)}
+.plan .price{font-family:var(--display);font-size:26px}
+.plan ul{margin:0;padding-left:18px;font-size:14px;color:var(--muted);flex:1}
+.plan .btn{align-self:flex-start}
+.aud{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:860px){.aud{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.aud{grid-template-columns:1fr}}
+.aud p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.faq{display:flex;flex-direction:column;gap:8px;max-width:80ch}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.faq summary{cursor:pointer;font-weight:600}
+.faq p{margin:8px 0 0;color:var(--muted)}
+.closing{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:14px;padding:28px;margin-bottom:12px}
+.cp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media (max-width:860px){.cp-grid{grid-template-columns:1fr 1fr}}
+.cp-grid .panel .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.cp-grid .panel .v{font-family:var(--display);font-size:24px;margin-top:2px}
+.cp-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media (max-width:760px){.cp-two{grid-template-columns:1fr}}
+.cp-two p{margin:6px 0 0;font-size:14px}
+
+/* ---------- motion ---------- */
+@keyframes gt-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes gt-word{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
+@keyframes gt-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes gt-pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes gt-slide{from{transform:translateX(100%)}to{transform:none}}
+@keyframes gt-fade{from{opacity:0}to{opacity:1}}
+@keyframes gt-drop{from{opacity:0;transform:translateY(-100%)}to{opacity:1;transform:none}}
+@keyframes gt-pulse{0%{box-shadow:0 0 0 0 var(--accent)}100%{box-shadow:0 0 0 9px transparent}}
+@keyframes gt-sheen{from{background-position:-200% 0}to{background-position:200% 0}}
+header.site{animation:gt-drop .6s cubic-bezier(.2,.8,.2,1) both}
+.hero-h .w{display:inline-block;animation:gt-word .8s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*70ms + 120ms)}
+.hero-copy .eyebrow{animation:gt-rise .6s ease both}
+.hero-p{animation:gt-rise .7s cubic-bezier(.2,.8,.2,1) .45s both}
+.hero-copy .row{animation:gt-rise .7s cubic-bezier(.2,.8,.2,1) .6s both}
+.hero-copy .hint{animation:gt-fade .8s ease .8s both}
+.hero-card{animation:gt-rise .9s cubic-bezier(.2,.8,.2,1) .35s both}
+.cb-f{transform-origin:left center;animation:gt-grow 1s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*100ms + 700ms)}
+.mark{transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.logo:hover .mark{transform:rotate(90deg) scale(1.15)}
+.view-in{animation:gt-rise .45s cubic-bezier(.2,.8,.2,1) both}
+.pre{opacity:.35;transform:translateY(26px) scale(.985)}
+.rv{transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1)}
+td.lead.lit{animation:gt-pop .6s cubic-bezier(.3,1.4,.5,1) both}
+.anim .ev-card,.anim ol.steps li{animation:gt-rise .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*35ms)}
+.ev-card .chip{transition:transform .25s}
+.ev-card:hover .chip{transform:scale(1.08)}
+.tool,.ind,.ev-card,.plan,.aud .panel,.fact,.cp-grid .panel,.pick .panel,.stat{transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s,border-color .28s,background-color .28s}
+.tool:hover,.ind:hover,.ev-card:hover,.plan:hover,.aud .panel:hover,.fact:hover,.cp-grid .panel:hover,.pick .panel:hover{transform:translateY(-4px);box-shadow:0 14px 30px -14px rgba(19,32,43,.35);border-color:var(--accent)}
+.stat:hover{background:var(--accent-soft)}
+.btn{transition:transform .15s,background-color .25s,box-shadow .25s}
+.btn:hover{box-shadow:0 10px 22px -12px var(--accent)}
+.btn:active{transform:scale(.97)}
+aside.drawer:not([hidden]){animation:gt-slide .32s cubic-bezier(.2,.8,.2,1) both}
+.scrim:not([hidden]){animation:gt-fade .25s ease both}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:middle;animation:gt-pulse 1.6s ease-out infinite}
+.rule{background-image:linear-gradient(110deg,transparent 30%,rgba(240,163,94,.12) 50%,transparent 70%);background-size:200% 100%;animation:gt-sheen 6s linear infinite}
+.bar .fill{transition:width .6s cubic-bezier(.2,.8,.2,1)}
+
+
+/* ---------- app shell ---------- */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:#12212C;color:#E9EEF0;display:flex;flex-direction:column;gap:22px;padding:22px 14px;padding-left:max(14px, env(safe-area-inset-left, 0px))}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;color:inherit;cursor:pointer;text-align:left;padding:4px 8px}
+.brand .mark{width:30px;height:30px;border-radius:8px}
+.brand-name{display:block;font-family:var(--display);font-size:21px;font-weight:600}
+.brand-sub{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#93A4AC}
+.nav-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7F929B;padding:0 10px 8px}
+.snav{display:flex;flex-direction:column;gap:3px}
+.snav button{display:flex;align-items:center;gap:10px;background:none;border:0;color:#BFCBD0;padding:10px 12px;border-radius:9px;cursor:pointer;text-align:left;font-weight:500;transition:background-color .2s,color .2s,box-shadow .2s}
+.snav button:hover{background:#1F3542;color:#fff}
+.snav button[aria-selected="true"]{background:#24404F;color:#fff;box-shadow:inset 3px 0 0 #F0A35E}
+.snav .ico{width:18px;text-align:center;color:#F0A35E}
+.side-bottom{margin-top:auto;border:1px solid #2C4552;border-radius:12px;padding:12px 14px;font-size:12px;color:#AEBCC2}
+.side-bottom p{margin:6px 0 0}
+.side-bottom .status{display:flex;align-items:center;color:#D9E7E0;font-weight:500}
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding-block:12px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.crumb{color:var(--muted);font-size:14px;white-space:nowrap}.crumb span{margin:0 6px;color:var(--line)}.crumb b{color:var(--ink)}
+.top-right{display:flex;align-items:center;gap:10px;min-width:0}
+.search{position:relative;min-width:0}
+.search input{width:min(300px,40vw);background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.sresults{position:absolute;right:0;top:44px;width:min(380px,90vw);background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 40px -16px rgba(19,32,43,.35);padding:6px;z-index:30;animation:gt-rise .2s ease both}
+.sresults button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:14px}
+.sresults button:hover,.sresults button:focus-visible{background:var(--soft)}
+.sresults .k{font-size:11px;color:var(--muted);white-space:nowrap}
+@media (max-width:900px){.app{display:block}.side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px}.nav-group{display:contents}.nav-label,.side-bottom,.brand-sub{display:none}.snav{flex-direction:row;overflow-x:auto;flex-basis:100%}.snav button{white-space:nowrap;padding:8px 10px}.crumb{display:none}.topbar{justify-content:flex-end}}
+.wrap{max-width:1240px}
+/* overview */
+.ov-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;padding-block:24px 18px}
+.ov-h{font-size:clamp(30px,3.4vw,44px);line-height:1.08;max-width:24ch}
+.ostats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+@media (max-width:960px){.ostats{grid-template-columns:1fr 1fr}}
+.ostat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font:inherit;color:inherit;box-shadow:0 14px 34px -26px rgba(19,32,43,.4);transition:transform .25s,box-shadow .25s,border-color .25s}
+.ostat:hover{transform:translateY(-3px);border-color:var(--accent)}
+.ostat .k{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.ostat .k i{font-style:normal;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.ostat .v{font-family:var(--display);font-size:30px;line-height:1.1}
+.ostat .n{font-size:12px;color:var(--muted)}
+.ov-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,.9fr);gap:16px;margin-bottom:16px;align-items:start}
+.ov-grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-bottom:8px;align-items:start}
+@media (max-width:960px){.ov-grid,.ov-grid2{grid-template-columns:1fr}}
+.map-row{display:flex;gap:16px;align-items:flex-start}
+@media (max-width:640px){.map-row{flex-direction:column}}
+.mapbox{position:relative;flex:0 0 250px;max-width:100%;background:radial-gradient(circle at 50% 40%,#FBF4EC,var(--soft));border:1px solid var(--line);border-radius:12px;padding:6px}
+.mapbox svg{display:block;width:100%;height:auto}
+.map-note{position:absolute;left:10px;top:6px;font-size:10px;color:var(--muted)}
+#omap .grid{stroke:var(--line);stroke-width:.6;stroke-dasharray:2 3}
+#omap .city{cursor:pointer}
+#omap .city circle.halo{fill:var(--accent);opacity:.15;transform-box:fill-box;transform-origin:center;animation:gt-halo 2.6s ease-out infinite}
+#omap .city circle.core{fill:var(--accent);stroke:#fff;stroke-width:1.5;transition:r .25s}
+#omap .city text{font-size:10px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:2.5px}
+#omap .city.on circle.core{fill:#12212C}
+@keyframes gt-halo{0%{transform:scale(.6);opacity:.35}100%{transform:scale(1.8);opacity:0}}
+#otable tr{cursor:pointer;transition:background-color .2s}
+#otable tbody tr:hover,#otable tr.on{background:var(--accent-soft)}
+.ov-side{display:flex;flex-direction:column;gap:16px}
+.next-card{background:#12212C;color:#EEF2F2;border-radius:12px;padding:20px;position:relative;overflow:hidden}
+.next-card::after{content:"";position:absolute;right:-40px;top:-50px;width:160px;height:160px;border-radius:50%;border:1px solid #3B5260;box-shadow:0 0 0 22px rgba(255,255,255,.03),0 0 0 44px rgba(255,255,255,.02)}
+.next-card .eyebrow{color:#F0A35E}
+.next-card h3{font-family:var(--display);font-size:21px;font-weight:600;margin:8px 0 12px;max-width:22ch}
+.next-q{display:flex;flex-direction:column;gap:8px;position:relative;z-index:1}
+.next-q button{display:flex;justify-content:space-between;gap:10px;text-align:left;background:#1E3442;color:#EEF2F2;border:1px solid #2F4856;border-radius:9px;padding:10px 12px;cursor:pointer;font-size:14px;transition:background-color .2s,transform .2s}
+.next-q button:hover{background:#28465A;transform:translateX(3px)}
+.next-q button span:last-child{color:#F0A35E}
+.srclist{display:flex;flex-direction:column;gap:10px}
+.srci{display:flex;gap:10px;align-items:center;background:none;border:0;text-align:left;cursor:pointer;padding:4px;border-radius:8px}
+.srci:hover{background:var(--soft)}
+.srci .lg{width:32px;height:32px;border-radius:8px;background:var(--soft);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0}
+.srci .t{flex:1;min-width:0;font-size:13px}.srci .t b{display:block}.srci .t span{color:var(--muted);font-size:12px}
+#attn tr{cursor:pointer}#attn tbody tr:hover{background:var(--soft)}
+.minifeed{display:flex;flex-direction:column;gap:8px}
+.mf{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px}
+.mf .w{min-width:0}.mf b{display:block}.mf span.c{font-size:12px;color:var(--muted)}
+/* assistant */
+.ask-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.8fr);gap:16px;align-items:start}
+@media (max-width:900px){.ask-grid{grid-template-columns:1fr}}
+.ask-main .chat{min-height:300px;max-height:60vh;overflow-y:auto;padding:4px}
+.ask-side{display:flex;flex-direction:column;gap:16px}
+.std{display:flex;gap:10px;margin-top:12px}.std>span{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex-shrink:0;font-weight:700}
+.std b{font-size:14px}.std p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.kb{font-family:var(--display);font-size:20px;margin:6px 0}
+.msg.bot{position:relative}
+.msg .meta-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.msg .meta-row button{background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px;color:var(--muted)}
+.typing{display:inline-flex;gap:4px;align-items:center}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:gt-bounce 1s infinite ease-in-out}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes gt-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+.fab{position:fixed;right:calc(20px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;gap:8px;background:#12212C;color:#fff;border:0;border-radius:999px;padding:12px 18px;font-weight:600;cursor:pointer;box-shadow:0 16px 30px -12px rgba(19,32,43,.55);animation:gt-rise .5s ease .8s both;transition:transform .2s}
+.fab span{color:#F0A35E}
+.fab:hover{transform:translateY(-2px) scale(1.03)}
+.apanel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--card);border-left:1px solid var(--line);z-index:22;display:flex;flex-direction:column;box-shadow:-20px 0 50px -30px rgba(19,32,43,.5);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.apanel:not([hidden]){animation:gt-slide .32s cubic-bezier(.2,.8,.2,1) both}
+.ap-head .row{flex-wrap:nowrap}.ap-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--line)}
+.ap-head b{display:block;font-family:var(--display);font-size:19px}
+.apanel .chat{flex:1;overflow-y:auto;padding:14px 16px;min-height:0}
+.apanel .sugg{padding:0 16px}
+.apanel .ask-bar{padding:12px 16px 16px;margin:0}
+.apanel .msg{max-width:100%}
+
+/* ---------- illustrations ---------- */
+:root{--sky1:#FDF1E3;--sky2:#E9EEEC;--ground:#DDE4E1;--lmc:#12212C}
+.lm{display:inline-block;color:var(--lmc);flex-shrink:0}
+.lm.ico{width:22px;height:15px;margin-right:6px;vertical-align:-2px;color:currentColor}
+.lm.ico2{width:44px;height:30px;color:var(--accent)}
+.cityc{display:flex;gap:10px;align-items:center}
+.cpick{display:inline-flex;align-items:center}
+.ov-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:center;gap:24px}
+.ov-art svg{display:block;width:100%;height:auto;max-height:280px}
+@media (max-width:820px){.ov-head{grid-template-columns:1fr}.ov-art{max-width:460px}}
+.hero-ill{border-radius:16px;background:linear-gradient(180deg,var(--sky1),#fff 85%)}
+.sun{fill:#F6C48E;opacity:.55;transform-box:fill-box;transform-origin:center;animation:gt-sun 6s ease-in-out infinite}
+@keyframes gt-sun{50%{transform:scale(1.08);opacity:.75}}
+.win{fill:#F6D7B0;animation:gt-win 6s steps(1) infinite}
+@keyframes gt-win{0%,100%{opacity:.25}40%{opacity:1}}
+.lm-mid{color:#9AA9B2}
+.lm-big{color:var(--lmc)}
+.fcard rect:first-child{fill:#fff;stroke:var(--line);stroke-width:1.2;filter:drop-shadow(0 10px 14px rgba(19,32,43,.12))}
+.fcard .ln{fill:#E5EAE8}
+.fcard .big{font-family:var(--display);font-size:22px;fill:var(--ink)}
+.fcard .mid{font-family:var(--display);font-size:17px;fill:var(--ink)}
+.fcard .ok{fill:var(--ok-bg)}.fcard .okt{font-size:9px;fill:var(--ok);text-anchor:middle;font-weight:600}
+.fcard .bad{fill:var(--bad-bg)}.fcard .badt{font-size:8.5px;fill:var(--bad);text-anchor:middle;font-weight:600}
+.fcard{animation:gt-float 6s ease-in-out infinite}
+.f2{animation-delay:-2s;animation-duration:7s}.f3{animation-delay:-4s;animation-duration:5.5s}
+@keyframes gt-float{50%{transform:translateY(-8px)}}
+.lens{animation:gt-lens 9s ease-in-out infinite}
+@keyframes gt-lens{0%,100%{transform:translate(0,0)}33%{transform:translate(-70px,-40px)}66%{transform:translate(60px,-70px)}}
+.lens .glass{fill:rgba(255,255,255,.55)}.lens .rim{fill:none;stroke:var(--lmc);stroke-width:5}
+.lens .handle{fill:var(--accent)}.lens .tick{fill:none;stroke:var(--ok);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.cbanner{position:relative;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,var(--sky1),#fff);border:1px solid var(--line);min-height:210px;margin-bottom:16px;animation:gt-rise .5s ease both}
+.cbanner .scene{position:absolute;inset:0;width:100%;height:100%}
+.cb-txt{position:relative;z-index:1;padding:26px 24px;max-width:48%;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.cb-txt .ph{font-size:clamp(30px,4vw,44px);margin:0}
+.cb-txt p{margin:0;color:var(--muted)}
+@media (max-width:640px){.cb-txt{max-width:100%;background:linear-gradient(90deg,rgba(255,255,255,.92),rgba(255,255,255,.6))}}
+.cloud{fill:#fff;opacity:.9}
+.c1{animation:gt-drift 26s linear infinite}.c2{animation:gt-drift 34s linear infinite reverse}
+@keyframes gt-drift{0%{transform:translateX(-40px)}50%{transform:translateX(60px)}100%{transform:translateX(-40px)}}
+.bird path{fill:none;stroke:#7D8C95;stroke-width:1.6;stroke-linecap:round}
+.bird{animation:gt-bird 14s ease-in-out infinite}
+@keyframes gt-bird{0%{transform:translate(-60px,10px)}50%{transform:translate(80px,-12px)}100%{transform:translate(-60px,10px)}}
+.page-art{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px}
+.road-ill{width:min(360px,100%);height:auto;display:block}
+.road-ill .road{fill:none;stroke:var(--line);stroke-width:8;stroke-linecap:round}
+.road-ill .flag rect,.road-ill .flag path{fill:var(--accent)}
+.road-ill .flag .dot{fill:#12212C}
+.road-ill .flag text{font-size:10px;fill:var(--muted);font-weight:600}
+.road-ill .flag{transform-box:fill-box;transform-origin:bottom center;animation:gt-pop .6s cubic-bezier(.3,1.4,.5,1) both}
+.road-ill .walker{fill:#12212C;stroke:#F0A35E;stroke-width:3}
+.msg.bot{padding-left:46px}
+.msg.bot::before{content:"✦";position:absolute;left:10px;top:10px;width:26px;height:26px;border-radius:50%;background:#12212C;color:#F0A35E;display:grid;place-items:center;font-size:13px}
+/* ---------- bold motion ---------- */
+.progress{position:fixed;left:0;top:env(safe-area-inset-top,0px);height:3px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--accent),#E8A15F);z-index:60;pointer-events:none}
+.hero-wrap{position:relative;isolation:isolate}
+#hero-net{position:absolute;inset:-20px calc(-1*max(16px, env(safe-area-inset-left, 0px))) 0;width:calc(100% + 2*max(16px, env(safe-area-inset-left, 0px)));height:calc(100% + 20px);z-index:-1;pointer-events:none;opacity:.9;-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.hero-h .hl{position:relative;white-space:nowrap}
+.hero-h .hl::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.14em;background:linear-gradient(90deg,var(--accent),#E8A15F);border-radius:3px;transform:scaleX(0);transform-origin:0 50%;animation:gt-grow .9s cubic-bezier(.7,0,.2,1) 1.1s both;z-index:-1;opacity:.85}
+.ticker{overflow:hidden;border-block:1px solid var(--line);margin:4px 0 26px;padding-block:10px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.ticker-track{display:flex;gap:34px;width:max-content;animation:gt-marquee 48s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.tk{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:14px;color:var(--muted)}
+.tk b{color:var(--ink);font-weight:600}
+.tk .chip{font-size:11px}
+@keyframes gt-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.sec-h .w2{display:inline-block;opacity:0;transform:translateY(55%) rotate(2deg);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--i)*55ms)}
+.sec-h.words-in .w2{opacity:1;transform:none}
+.tilt{transform-style:preserve-3d;will-change:transform}
+.tilting{transition:transform .12s ease-out,box-shadow .28s,border-color .28s!important;box-shadow:0 22px 40px -18px rgba(19,32,43,.38)!important;border-color:var(--accent)!important}
+.tool,.plan,.ind,.hero-card,.aud .panel,.stat{position:relative;overflow:hidden}
+.tool::before,.plan::before,.ind::before,.hero-card::before,.aud .panel::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(232,161,95,.22),transparent 70%)}
+.tool:hover::before,.plan:hover::before,.ind:hover::before,.hero-card:hover::before,.aud .panel:hover::before{opacity:1}
+.btn.mag{transition:transform .25s cubic-bezier(.2,.8,.2,1),background-color .25s,box-shadow .25s}
+.stat-n{background:linear-gradient(90deg,var(--ink) 0 40%,var(--accent) 50%,var(--ink) 60% 100%);background-size:250% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;transition:background-position 1.2s ease}
+.stat:hover .stat-n{background-position:0 0}
+.plan.hl{background:linear-gradient(var(--card),var(--card)) padding-box,conic-gradient(from var(--ang,0deg),var(--accent),#F3D1AE,var(--accent)) border-box;border:2px solid transparent;animation:gt-spin 6s linear infinite}
+@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes gt-spin{to{--ang:360deg}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}.pre{opacity:1;transform:none}.sec-h .w2{opacity:1;transform:none}#hero-net{display:none}.road-ill .walker{display:none}.progress{display:none}}
+
+.rsum{border:1px solid var(--line);border-left:4px solid var(--accent,#B5651D);border-radius:12px;padding:14px 16px;margin:4px 0 18px;background:linear-gradient(90deg,rgba(240,163,94,.10),transparent 70%);display:flex;flex-direction:column;gap:8px}
+.rsum-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px}
+.rsum-k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted);min-width:150px}
+.rsum-c{background:#13202B;color:#F3F1EA;border-radius:999px;padding:3px 11px;font-size:13px;font-weight:500}
+.rsum-n{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.rsum-hi{animation:rsumhi 1.2s ease}
+@keyframes rsumhi{0%{box-shadow:0 0 0 0 rgba(240,163,94,.7);background-color:rgba(240,163,94,.25)}100%{box-shadow:0 0 0 12px rgba(240,163,94,0);background-color:transparent}}
+@media (max-width:640px){.rsum-k{min-width:0;width:100%}}
+</style>
+
+<div class="progress" id="progress" aria-hidden="true"></div>
+<div class="app">
+<aside class="side" aria-label="GroundTruth">
+  <button class="brand" id="go-home" aria-label="GroundTruth overview"><span class="mark" aria-hidden="true"></span><span><span class="brand-name">GroundTruth</span><span class="brand-sub">GCC facts, checked</span></span></button>
+  <div class="nav-group"><div class="nav-label">Workspace</div>
+    <nav class="snav" aria-label="Main">
+      <button id="tab-overview" data-go="overview" aria-selected="true"><span class="ico" aria-hidden="true">▦</span>Overview</button>
+      <button id="tab-cities" data-go="cities" aria-selected="false"><span class="ico" aria-hidden="true">◎</span>Cities</button>
+      <button id="tab-plan" data-go="plan" aria-selected="false"><span class="ico" aria-hidden="true">⇄</span>Compare cities</button>
+      <button id="tab-roadmap" data-go="roadmap" aria-selected="false"><span class="ico" aria-hidden="true">☰</span>Setup roadmap</button>
+      <button id="tab-ask" data-go="ask" aria-selected="false"><span class="ico" aria-hidden="true">✦</span>Ask GroundTruth</button>
+      <button id="tab-facts" data-go="facts" aria-selected="false"><span class="ico" aria-hidden="true">▤</span>All facts</button>
+    </nav></div>
+  <div class="nav-group"><div class="nav-label">Learn</div>
+    <nav class="snav" aria-label="About"><button id="tab-home" data-go="home" aria-selected="false"><span class="ico" aria-hidden="true">◇</span>About and plans</button></nav></div>
+  <div class="side-bottom"><span class="status"><span class="live" aria-hidden="true"></span><span id="side-count"></span></span><p>Every number shows its sources, date and publisher. Nobody can pay to change the data.</p></div>
+</aside>
+<div class="main">
+<header class="topbar">
+  <div class="crumb">Workspace <span aria-hidden="true">/</span> <b id="crumb">Overview</b></div>
+  <div class="top-right">
+    <div class="search"><label for="gsearch" class="sr">Search</label><input id="gsearch" placeholder="Search cities, facts, companies…" autocomplete="off"><div class="sresults" id="sresults" hidden></div></div>
+    <button class="btn" id="open-ai"><span aria-hidden="true">✦</span> Ask AI</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- OVERVIEW -->
+  <section id="view-overview" aria-label="Overview">
+    <div class="ov-head">
+      <div><p class="eyebrow">GCC facts · India · October 2026</p><h1 class="ph ov-h">Make your India entry decision with evidence.</h1><p class="lede" style="margin:0">Costs, rankings, setup rules and new arrivals for India's GCC market. Every number links to all its sources and to who published them.</p>
+      <div class="row" style="margin-top:16px"><button class="btn ghost" data-go="facts">Explore all facts</button><button class="btn" data-go="plan">Compare cities</button></div></div>
+      <div class="ov-art" id="ov-art"></div>
+    </div>
+    <div class="ostats" id="ostats"></div>
+    <div class="ov-grid">
+      <div class="panel ov-cities">
+        <div class="result-head"><div><h2>Six cities at a glance</h2><span class="hint">Circle size = share of GCC office space (CBRE). Tap a city to open its page.</span></div><button class="ev-link" data-go="plan">Open the planner</button></div>
+        <div class="map-row"><div class="mapbox"><svg id="omap" viewBox="16 112 228 290" role="img" aria-label="Six GCC cities at their real positions, sized by share of GCC office space"></svg><span class="map-note">Positions to scale; no borders drawn</span></div>
+        <div class="tablewrap" style="flex:1;min-width:0"><table class="data" id="otable"></table></div></div>
+      </div>
+      <div class="ov-side">
+        <div class="next-card"><span class="eyebrow">Your next decision</span><h3>Start with the question you need to answer</h3><div class="next-q" id="next-q"></div></div>
+        <div class="panel"><div class="result-head"><h2 style="font-size:19px">Recently checked sources</h2><button class="ev-link" data-go="facts">All facts</button></div><div class="srclist" id="srclist"></div></div>
+      </div>
+    </div>
+    <div class="ov-grid2">
+      <div class="panel"><div class="result-head"><div><h2 style="font-size:19px">Claims that need attention</h2><span class="hint">Showing gaps, not hiding them</span></div><button class="ev-link" data-go="facts">Review all</button></div><div class="tablewrap"><table class="data" id="attn"></table></div></div>
+      <div class="panel"><div class="result-head"><div><h2 style="font-size:19px"><span class="live" aria-hidden="true"></span>Latest new GCCs</h2><span class="hint">Stage labelled: opened is not announced</span></div><button class="ev-link" data-go="home" data-scroll="feed">See all 22</button></div><div class="minifeed" id="minifeed"></div></div>
+    </div>
+  </section>
+
+  <!-- HOME -->
+  <section id="view-home" aria-label="About and plans" hidden>
+    <div class="hero-wrap"><canvas id="hero-net" aria-hidden="true"></canvas>
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">For companies opening a GCC in India</p>
+        <h1 class="hero-h">Check the facts before you <span class="hl">choose a city.</span></h1>
+        <p class="hero-p">Rents, salaries, city rankings, setup rules and exit times, with every source side by side. You see who published each number and what they sell, so you can tell evidence from marketing.</p>
+        <div class="row">
+          <button class="btn big" data-go="plan">Compare cities</button>
+          <button class="btn ghost big" data-go="roadmap">Plan my setup</button>
+        </div>
+        <p class="hint" style="margin-top:12px">Free for companies planning a GCC. Nobody can pay to change our data.</p>
+      </div>
+      <figure class="hero-card panel">
+        <figcaption><span class="eyebrow">Live example</span><b>How many GCCs are in India?</b><span class="hint">Seven sources, seven answers. Tap to see why.</span></figcaption>
+        <div class="count-bars" id="count-bars"></div>
+        <button class="btn ghost" data-fact="gcc-count" style="align-self:flex-start">See all 7 sources</button>
+      </figure>
+    </div>
+
+    </div>
+    <div class="ticker" aria-label="Recent GCC announcements"><div class="ticker-track" id="ticker"></div></div>
+    <div class="band">
+      <div class="stat"><span class="stat-n">536–2,800</span><span>GCC counts, depending on who you ask</span><button class="ev-link" data-fact="gcc-count">Sources</button></div>
+      <div class="stat"><span class="stat-n">3 answers</span><span>to “which city is No. 2?”: Delhi NCR, Hyderabad or Pune</span><button class="ev-link" data-fact="lead-measure">Sources</button></div>
+      <div class="stat"><span class="stat-n">4.3 years</span><span>to close an Indian company in a government-cited study</span><button class="ev-link" data-fact="exit-time">Sources</button></div>
+      <div class="stat"><span class="stat-n">$99–$699</span><span>a month per person for an EOR, and every comparison we found is written by an EOR</span><button class="ev-link" data-fact="eor-fees">Sources</button></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-top"><div><p class="eyebrow">City rankings</p><h2 class="sec-h">Which city leads? Depends whose ranking you read.</h2></div><button class="btn ghost" data-go="cities">Open city pages</button></div>
+      <p class="lede">Four respected rankings, two different No. 1s. GroundTruth shows them side by side instead of picking the one that suits a sale.</p>
+      <div class="panel tablewrap"><table class="data" id="rank-table"></table></div>
+      <p class="note">Highlighted cell = No. 1 on that measure. “Not given” means the source doesn't publish a figure for that city.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-top"><div><p class="eyebrow"><span class="live" aria-hidden="true"></span>New GCCs in 2026</p><h2 class="sec-h">Who is coming, and has it really opened?</h2></div></div>
+      <p class="lede">22 announcements we tracked from January to October 2026. Trackers often treat “announced” as “opened”. We label the stage of each one.</p>
+      <div class="seg" id="feed-city" role="group" data-anchor="feed" aria-label="Filter by city" style="margin-bottom:12px"></div>
+      <div class="feed" id="feed"></div><span id="feed-anchor"></span>
+      <p class="note">A sample from GCC Index, GCC Rise, Flexiple and press reports, not a complete list. <button class="ev-link" data-fact="arrivals">Sources</button></p>
+    </div>
+
+    <div class="sec">
+      <p class="eyebrow">City and industry</p>
+      <h2 class="sec-h">Which industries go where</h2>
+      <div class="inds" id="inds"></div>
+    </div>
+
+    <div class="sec">
+      <h2 class="sec-h">Four tools for one big decision</h2>
+      <div class="tools">
+        <button class="tool" data-go="plan"><b>Compare cities</b><span>Pick your industry and team size. See yearly pay plus rent, talent and new GCC arrivals for six cities, and switch which measure decides who leads.</span><em>Open the planner</em></button>
+        <button class="tool" data-go="roadmap"><b>Setup roadmap</b><span>EOR or your own company. Get a dated checklist: directors, RBI filings, the 180-day deadline, yearly returns, and what leaving will take.</span><em>Build my roadmap</em></button>
+        <button class="tool" data-go="ask"><b>Ask GroundTruth</b><span>Ask in plain English. The AI answers only from checked facts, cites each one, and says when sources disagree.</span><em>Ask a question</em></button>
+        <button class="tool" data-go="facts"><b>All facts</b><span>Every question we track, every source's answer, what each counts, and who is behind it.</span><em>Browse the facts</em></button>
+      </div>
+    </div>
+
+    <div class="sec two">
+      <div>
+        <h2 class="sec-h">How a fact gets here</h2>
+        <ol class="how">
+          <li><b>Collect.</b> Company filings, state policies, property and salary reports, press releases.</li>
+          <li><b>Extract.</b> AI pulls out each number, what it counts, its date and its publisher.</li>
+          <li><b>Check.</b> A person matches it against the original page before it goes live.</li>
+          <li><b>Publish with sources.</b> Every number keeps all its sources, a status, and our reading.</li>
+        </ol>
+      </div>
+      <div class="rule">
+        <p class="eyebrow">Our one rule</p>
+        <p class="rule-h">Nobody can pay to change our data or rankings.</p>
+        <p>Providers, brokers and states can pay to reach companies, always labelled as paid. They can never pay to look better. Our own data team works apart from sales, and our method is public.</p>
+      </div>
+    </div>
+
+    <div class="sec" id="plans">
+      <p class="eyebrow">Plans</p>
+      <h2 class="sec-h">Free for companies making the decision</h2>
+      <p class="lede">Planned pricing for this prototype. None of the paid plans changes the data or the rankings.</p>
+      <div class="plans">
+        <div class="plan hl"><b>Companies planning a GCC</b><span class="price">Free</span><ul><li>Compare cities and costs</li><li>Setup-to-exit roadmap</li><li>Ask GroundTruth</li><li>Every fact with all its sources</li></ul><button class="btn" data-go="plan">Start free</button></div>
+        <div class="plan"><b>Service providers</b><span class="price">Paid, labelled</span><ul><li>A profile checked against real GCC records</li><li>Reach companies that are actively planning</li><li>Always marked as paid</li><li>Cannot buy a better ranking</li></ul><span class="hint">Planned, not live</span></div>
+        <div class="plan"><b>Brokers, recruiters, states</b><span class="price">Subscription</span><ul><li>New-GCC feed with stage labels</li><li>City and industry data exports</li><li>Alerts on new arrivals</li><li>Same data everyone sees</li></ul><span class="hint">Planned, not live</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <p class="eyebrow">Who it's for</p>
+      <h2 class="sec-h">Built first for the company with the most to lose</h2>
+      <div class="aud">
+        <div class="panel"><b>First-time GCC companies</b><p>Mid-sized firms opening their first India office, with no team or contacts here yet. Our first users.</p></div>
+        <div class="panel"><b>Existing GCCs</b><p>Choosing a second city, or checking pay and rent against peers.</p></div>
+        <div class="panel"><b>Service providers</b><p>Good setup firms, EORs and lawyers who want a track record buyers can verify.</p></div>
+        <div class="panel"><b>State governments</b><p>Show incentives side by side with other states, on neutral ground.</p></div>
+        <div class="panel"><b>Brokers and landlords</b><p>See which GCCs are coming, and in which districts.</p></div>
+        <div class="panel"><b>Recruiters</b><p>Know who is arriving and hiring next, with the stage of each announcement.</p></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2 class="sec-h">Questions</h2>
+      <div class="faq">
+        <details><summary>What is a GCC?</summary><p>A Global Capability Centre is an office a foreign company runs in India with its own staff, for technology, engineering, finance or operations work. Starbucks in Chennai and DoorDash in Hyderabad are recent examples.</p></details>
+        <details><summary>How do you decide which number is right?</summary><p>We don't hide disagreement. Every source's number is shown with what it counts, its date and its publisher. Where they conflict, we explain why and give a range. A person checks each fact against the original page before it goes live.</p></details>
+        <details><summary>Can a provider or state pay to rank higher?</summary><p>No. They can pay to reach companies, clearly labelled as paid. They can never pay to change data or rankings.</p></details>
+        <details><summary>Where does the AI come in?</summary><p>AI helps collect sources and extract numbers, and Ask GroundTruth answers questions only from checked facts, citing each one. It never publishes a fact on its own.</p></details>
+        <details><summary>Is the setup roadmap legal advice?</summary><p>No. It's a guide built from published rules and adviser checklists, with sources. Confirm your dates with a company secretary or lawyer.</p></details>
+      </div>
+    </div>
+
+    <div class="closing">
+      <h2 class="sec-h" style="margin:0">Choosing a city for the next ten years? Check the facts first.</h2>
+      <button class="btn big" data-go="plan">Start free</button>
+    </div>
+  </section>
+
+  <!-- CITY PAGES -->
+  <section id="view-cities" aria-label="Cities" hidden>
+    <div class="page-h"><h1 class="ph">City pages</h1><p class="lede">One page per city: costs, talent, rankings, clusters, incentives and new arrivals, each with its sources.</p></div>
+    <div class="seg" id="city-pick" role="group" aria-label="City" style="margin-bottom:16px"></div>
+    <div id="city-page"></div>
+  </section>
+
+  <!-- CITY PLANNER -->
+  <section id="view-plan" aria-label="Compare cities" hidden>
+    <div class="page-h"><h1 class="ph">Compare cities</h1><p class="lede">Six cities for your team, with the sources behind every number.</p></div>
+    <div class="grid">
+      <div class="panel form" aria-label="Your plan">
+        <h3>Your plan</h3>
+        <label class="f">Industry
+          <select id="p-ind"></select>
+        </label>
+        <label class="f">Team size (engineers)
+          <input id="p-team" type="number" min="5" max="5000" step="5" value="50">
+        </label>
+        <label class="f">Share of senior engineers (6+ years): <span id="p-sen-out">30%</span>
+          <input id="p-sen" type="range" min="0" max="100" step="5" value="30">
+        </label>
+        <label class="f">Office space per person (sq ft)
+          <input id="p-sqft" type="number" min="50" max="300" step="10" value="100">
+          <span class="hint">Our assumption. Change it to match your plan.</span>
+        </label>
+        <div>
+          <div class="hint" style="margin-bottom:6px">Which city “leads”? Pick a measure</div>
+          <div class="seg" id="p-measure" role="group" aria-label="Measure"></div>
+        </div>
+        <button class="btn ghost" id="p-brief">Download decision brief (.md)</button>
+        <span class="hint" id="p-brief-msg" role="status"></span>
+      </div>
+
+      <div style="min-width:0">
+        <div class="pick" id="p-pick"></div>
+        <div class="panel">
+          <div class="result-head">
+            <h2>Six cities, side by side</h2>
+            <span class="hint">Tap any number to see its sources</span>
+          </div>
+          <div class="tablewrap"><table class="data" id="p-table"></table></div>
+          <p class="note"><b>How it’s worked out:</b> salary bill = team × (median pay × juniors + senior pay × seniors); office rent = team × sq ft per person × rent × 12. <b>Not included:</b> benefits, PF, bonuses, setup, taxes, incentives, so the real cost is higher. It’s an estimate to compare cities, not a budget. Office rent is CRE Matrix “market rent”; the grade isn't stated. Delhi rent and pay stand in for Delhi NCR.</p>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="result-head"><h2 id="m-title">Who leads?</h2><span class="hint" id="m-src"></span></div>
+          <p class="lede" id="m-lede" style="margin:0"></p>
+          <div class="bars" id="m-bars"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="view-roadmap" aria-label="Setup roadmap" hidden>
+    <div class="page-h page-art"><div><h1 class="ph">Setup roadmap</h1><p class="lede">Every step from choosing directors to closing down, dated from your start.</p></div><div id="road-art"></div></div>
+    <div class="grid">
+      <div class="panel form" aria-label="Roadmap inputs">
+        <h3>Your setup</h3>
+        <div>
+          <div class="hint" style="margin-bottom:6px">How will you hire?</div>
+          <div class="seg" id="r-route" role="group" aria-label="Setup route"></div>
+        </div>
+        <label class="f">Start date
+          <input id="r-start" type="date" value="2026-10-20">
+        </label>
+        <label class="f">City
+          <select id="r-city"></select>
+        </label>
+        <label class="f">Office lease lock-in (years)
+          <input id="r-lock" type="number" min="0" max="9" step="1" value="3">
+          <span class="hint">Typical lock-ins run 3 to 5 years.</span>
+        </label>
+        <button class="btn ghost" id="r-dl">Download checklist (.md)</button>
+        <span class="hint" id="r-dl-msg" role="status"></span>
+      </div>
+      <div style="min-width:0">
+        <div class="compare" id="r-compare"></div>
+        <div class="panel" id="r-plan"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASK -->
+  <section id="view-ask" aria-label="Ask GroundTruth" hidden>
+    <div class="page-h"><h1 class="ph">Ask GroundTruth</h1><p class="lede">An AI research assistant that answers only from GroundTruth's checked facts. It cites each one, shows where sources disagree, and says when it doesn't know.</p></div>
+    <div class="ask-grid"><div class="panel ask-main">
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <form class="ask-bar" id="ask-form">
+      <label for="ask-in" class="hint" hidden>Your question</label>
+      <input id="ask-in" placeholder="e.g. Is Hyderabad or Chennai better for a pharma team of 40?" autocomplete="off">
+      <button class="btn" id="ask-go" type="submit">Ask</button>
+      <button class="btn ghost" id="ask-stop" type="button" hidden>Stop</button>
+    </form>
+    <div class="sugg" id="sugg"></div>
+    <p class="note" id="ask-note"></p>
+    </div>
+    <div class="ask-side">
+      <div class="panel"><h3>How it answers</h3>
+        <div class="std"><span>↗</span><div><b>Cites every fact</b><p>Each claim carries a fact ID. Tap it to see all sources.</p></div></div>
+        <div class="std"><span>≠</span><div><b>Shows disagreement</b><p>When sources conflict, it gives the range and the reason.</p></div></div>
+        <div class="std"><span>?</span><div><b>Admits gaps</b><p>If GroundTruth has no checked data, it says so instead of guessing.</p></div></div>
+        <div class="std"><span>⌂</span><div><b>Knows your page</b><p>Ask from any page with the ✦ button and it uses what you're looking at.</p></div></div>
+      </div>
+      <div class="panel"><h3>What it can use</h3><p class="kb" id="kb"></p><p class="hint">It cannot browse the web. That keeps answers tied to facts a person has checked.</p></div>
+    </div></div>
+  </section>
+
+  <!-- FACTS -->
+  <section id="view-facts" aria-label="All facts" hidden>
+    <div class="page-h"><h1 class="ph">All facts</h1></div>
+    <p class="lede">The truth ledger: every question we track, every source's answer, what each source counts, and who published it. AI helps collect these, but a person checks each one before it goes live.</p>
+    <div class="row" style="margin-bottom:12px">
+      <div class="seg" id="f-topic" role="group" aria-label="Topic"></div>
+    </div>
+    <div class="row" style="margin-bottom:16px">
+      <div class="seg" id="f-status" role="group" aria-label="Status"></div>
+    </div>
+    <div class="facts" id="f-list"></div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-cols">
+      <div><b>GroundTruth</b><p>The neutral place to check facts about India's GCCs.</p></div>
+      <div><b>Tools</b><button data-go="plan">Compare cities</button><button data-go="roadmap">Setup roadmap</button><button data-go="ask">Ask</button><button data-go="facts">All facts</button></div>
+      <div><b>About this prototype</b><p>Built for a product assignment. Figures come from public sources as of October 2026, many published by firms that sell GCC services. Legal steps are a guide, not legal advice.</p></div>
+    </div>
+  </footer>
+</div>
+</div>
+</div>
+<button class="fab" id="fab" aria-label="Ask GroundTruth"><span aria-hidden="true">✦</span> Ask GroundTruth</button>
+<aside class="apanel" id="apanel" aria-label="Ask GroundTruth" hidden>
+  <div class="ap-head"><div><b>Ask GroundTruth</b><span class="hint" id="ap-ctx">Answers only from checked facts</span></div><div class="row"><button class="x" id="ap-full" title="Open full page">Full page</button><button class="x" id="ap-close" aria-label="Close">Close</button></div></div>
+  <div class="chat" id="pchat" aria-live="polite"></div>
+  <div class="sugg" id="psugg"></div>
+  <form class="ask-bar" id="pask-form"><label for="pask-in" class="sr">Your question</label><input id="pask-in" placeholder="Ask about this page…" autocomplete="off"><button class="btn" type="submit" id="pask-go">Ask</button></form>
+</aside>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-title" hidden>
+  <div class="drawer-head">
+    <div><span id="dr-status"></span><h2 id="dr-title"></h2></div>
+    <button class="x" id="dr-close" aria-label="Close">Close</button>
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+</aside>
+
+<script>
+(function(){
+"use strict";
+/* ---------- SOURCES: who published it, and what they sell ---------- */
+const S={
+  cre:{name:"CRE Matrix",title:"India office market, Q1 CY26",date:"Jul 2026",url:"https://www.crematrix.com/blog/india-office-market-q1-cy26-key-trends-and-city-wise-performance/",sells:"Real-estate data and analytics"},
+  flexSal:{name:"Flexiple",title:"GCC statistics (own platform data)",date:"Aug 2026",url:"https://flexiple.com/gcc/statistics",sells:"Hiring, EOR and GCC setup"},
+  flexList:{name:"Flexiple",title:"GCC companies in India",date:"Aug 2026",url:"https://flexiple.com/gcc/india",sells:"Hiring, EOR and GCC setup"},
+  flexHome:{name:"Flexiple",title:"Flexiple homepage",date:"Oct 2026",url:"https://flexiple.com/",sells:"Hiring, EOR and GCC setup"},
+  cbre:{name:"CBRE (via CXOToday)",title:"State GCC policies report",date:"2026",url:"https://cxotoday.com/others/state-policies-target-over-1-1-million-gcc-jobs-by-2031-cbre-report/",sells:"Office leasing and property services"},
+  jll:{name:"JLL",title:"India GCC leasing hits record 31 million sq ft",date:"Feb 2026",url:"https://www.jll.com/en-in/newsroom/india-s-gcc-expansion-hits-record-31-million",sells:"Office leasing and property services"},
+  jllHyd:{name:"JLL",title:"Healthcare and life sciences drive GCC growth in Hyderabad",date:"Nov 2025",url:"https://www.jll.com/en-in/insights/healthcare-and-life-sciences-drive-gcc-growth-in-hyderabad",sells:"Office leasing and property services"},
+  dnb:{name:"Dun & Bradstreet (citing Zinnov, AMCHAM)",title:"GCC 2026, Bengaluru edition",date:"2026",url:"https://www.dnb.co.in/files/reports/GCC-2026-Bengaluru-Edition.pdf",sells:"Business data and reports"},
+  colliers:{name:"Colliers (via India Briefing)",title:"Top tech talent locations 2025",date:"2025",url:"https://www.india-briefing.com/news/indias-bengaluru-hyderabad-among-top-tech-talent-hubs-colliers-2025-report-38739.html/",sells:"Office leasing and property services"},
+  colliersMM:{name:"Colliers (via RealtynMore)",title:"High-activity micro-markets",date:"Jun 2025",url:"https://realtynmore.com/high-activity-micro-markets-to-witness-1-msf-of-average-annual-demand-supply-in-next-few-years/",sells:"Office leasing and property services"},
+  omnivoo:{name:"Omnivoo",title:"GCC India cost breakdown",date:"2026",url:"https://www.omnivoo.com/blog/gcc-india-cost-breakdown",sells:"EOR and payroll"},
+  nz:{name:"Nasscom-Zinnov",title:"India GCC Landscape 2026",date:"Mar 2026 data",url:"https://zinnov.com/centers-of-excellence/zinnov-nasscom-india-gcc-landscape-2026-report/",sells:"Zinnov sells GCC setup advice; Nasscom is the IT industry body"},
+  aim:{name:"AIM Research",title:"GCC Explorer",date:"Undated",url:"https://reports.aimresearch.co/?p=4006",sells:"Paid GCC contact lists"},
+  wisemonk:{name:"Wisemonk",title:"India GCC landscape report",date:"2026",url:"https://www.wisemonk.io/de/blogs/india-gcc-landscape-report",sells:"EOR and GCC setup"},
+  quess:{name:"Quess Corp (via Storyboard18)",title:"GCC talent shortfall study",date:"Feb 2026",url:"https://www.storyboard18.com/how-it-works/indias-1900-gccs-face-18-43-talent-shortfall-in-key-tech-roles-quess-corp-90866.htm",sells:"Staffing and hiring"},
+  ocean:{name:"OceanFrogs",title:"GCC product modules",date:"Undated",url:"https://www.oceanfrogs.com/blogs/gcc-product-modules/",sells:"Paid GCC sales intelligence"},
+  gccpros:{name:"GCCPROs",title:"GCC India Atlas",date:"2026",url:"https://www.gccpros.com/gcc-in-bengaluru",sells:"Consulting and events"},
+  kaam:{name:"Kaam",title:"India tech salary report",date:"2026",url:"https://www.kaam.work/blog/india-tech-salary-report",sells:"EOR and payroll"},
+  gccj:{name:"GCC Journal",title:"GCC salary calculator",date:"2026",url:"https://gccjournal.in/gcc-salary-calculator/",sells:"Not stated"},
+  ansr:{name:"ANSR",title:"ANSR vs others",date:"Checked Oct 2026",url:"https://ansr.com/ansr-vs-others/",sells:"GCC setup and operations"},
+  zinnovSelf:{name:"Zinnov",title:"Zinnov GCC services page",date:"2026",url:"https://zinnov.com/?p=85496",sells:"GCC setup advice"},
+  vestian:{name:"Vestian (via IndBiz)",title:"GCCs power office leasing in FY25",date:"2025",url:"https://indbiz.gov.in/gccs-power-indias-office-leasing-market-in-fy25-with-record-absorption",sells:"Workplace and real-estate consulting"},
+  es:{name:"Government of India",title:"Economic Survey 2020-21, vol. 1",date:"Jan 2021",url:"https://www.indiabudget.gov.in/economicsurvey/ebook_es2021/files/basic-html/page199.html",sells:"Nothing (government)"},
+  treelife:{name:"Treelife",title:"How to close an Indian subsidiary",date:"Jun 2026",url:"https://treelife.in/legal/how-to-close-an-indian-subsidiary/",sells:"Legal and company-closure services"},
+  pkc:{name:"PKC",title:"Compliance checklist for the Indian arm of a foreign company",date:"Nov 2025",url:"https://www.pkcindia.com/blog/foreign-company-indian-subsidiary-compliance/",sells:"Accounting and compliance services"},
+  icsi:{name:"ICSI",title:"Appointment and qualifications of directors",date:"n/a",url:"https://www.icsi.edu/media/portals/0/APPOINTMENT%20AND%20QUALIFICATIONS.pdf",sells:"Nothing (professional body)"},
+  brigade:{name:"Brigade Group",title:"Lock-in period in commercial real estate",date:"Jun 2025",url:"https://brigadegroup.com/blog/commercial/lock-in-period-in-commercial-real-estate",sells:"Office developer and landlord"},
+  asanify:{name:"Asanify",title:"10 best EOR companies in India",date:"Jun 2026",url:"https://asanify.com/blog/employer-of-record-india/employer-of-record-companies/",sells:"EOR (ranks itself first)"},
+  kaamEor:{name:"Kaam",title:"India EOR pricing 2026",date:"Apr 2026",url:"https://www.kaam.work/blog/india-eor-pricing",sells:"EOR and payroll"},
+  wmAgg:{name:"Wisemonk",title:"Owned-entity vs aggregator EOR",date:"Jul 2026",url:"https://www.wisemonk.io/blogs/owned-entity-vs-aggregator-eor",sells:"EOR and GCC setup"},
+  bog:{name:"Business of GCC (citing EY)",title:"Industries driving GCC growth",date:"2026",url:"https://www.businessofgcc.com/insights/analysis/industries-driving-global-capability-center-growth",sells:"Provider listings and advertising"},
+  pm:{name:"People Matters",title:"Maharashtra approves GCC policy",date:"2025",url:"https://www.peoplematters.in/news/economy-policy/maharashtra-approves-gcc-policy-to-set-up-400-centres-create-4-lakh-jobs-46662",sells:"HR media"},
+  gccidx:{name:"GCC Index",title:"City rankings (homepage)",date:"Oct 2026 (week 42)",url:"https://gccindex.in/",sells:"GCC data subscriptions (Starter free, Pro paid)"},
+  sample:{name:"GroundTruth sample",title:"22 GCC announcements in 2026, compiled from GCC Index, GCC Rise, Flexiple, OpenPR",date:"Oct 2026",url:"https://gccindex.in/blog/gcc-india-expansion-news",sells:"Nothing (our own compilation)"}
+};
+const STATUS={
+  ok:{label:"Checked",cls:"s-ok",dot:"d-ok",help:"We opened the original source and it matches."},
+  bad:{label:"Sources disagree",cls:"s-bad",dot:"d-bad",help:"Different sources give different answers, usually because they count different things."},
+  one:{label:"One source",cls:"s-one",dot:"d-one",help:"Only one source gives this. Treat it as a single estimate."},
+  self:{label:"Seller's own claim",cls:"s-self",dot:"d-self",help:"The figure comes from a firm describing itself or its own product."}
+};
+
+/* ---------- CITIES ---------- */
+const CITIES=[
+ {id:"blr",idx:784,name:"Bengaluru",state:"Karnataka",rent:132.6,eng:15.7,sen:32.5,units:30,leasing:42,leasingTxt:"~42%",activity:36.5,activityTxt:"34–39%",talent:4.5,arrivals:5,clusters:"Outer Ring Road, Whitefield, Secondary Business District 1, North Bengaluru",policy:"Karnataka GCC Policy 2024–29: targets ~500 new GCCs"},
+ {id:"hyd",idx:1000,name:"Hyderabad",state:"Telangana",rent:76.8,eng:10.4,sen:24.2,units:12,leasing:20,leasingTxt:"~20%",activity:21.5,activityTxt:"20–23%",talent:4.0,arrivals:9,clusters:"Secondary Business District (around HITEC City), Off-SBD",policy:"No standalone GCC policy; broader state IT framework"},
+ {id:"pune",idx:369,name:"Pune",state:"Maharashtra",rent:90.2,eng:9.5,sen:22.3,units:12,leasing:10.5,leasingTxt:"~10–11%",activity:17.5,activityTxt:"15–20%",talent:2.5,arrivals:3,clusters:"Not named in our sources",policy:"Maharashtra GCC Policy 2025: ~200 (CBRE) or ~400 (state) new GCCs"},
+ {id:"chn",name:"Chennai",state:"Tamil Nadu",rent:83.3,eng:7.6,sen:19.1,units:10,leasing:10.5,leasingTxt:"~10–11%",activity:null,activityTxt:"not given",talent:2.5,arrivals:5,clusters:"OMR Zone 1, Mount-Poonamallee Road",policy:"Payroll subsidy; needs a Forbes Global 2000 parent and 200+ jobs"},
+ {id:"ncr",name:"Delhi NCR",state:"Haryana, UP, Delhi",rent:102.9,eng:14.1,sen:24.0,units:16,leasing:10.5,leasingTxt:"~10–11%",activity:null,activityTxt:"not given",talent:3.0,arrivals:1,clusters:"Not named in our sources",policy:"Haryana GCC Policy 2025; UP GCC Policy 2024 (100% stamp duty waiver)"},
+ {id:"mum",name:"Mumbai",state:"Maharashtra",rent:170.8,eng:9.7,sen:22.8,units:12,leasing:4,leasingTxt:"~4%",activity:null,activityTxt:"not given",talent:2.5,arrivals:0,clusters:"Not named in our sources",policy:"Maharashtra GCC Policy 2025"}
+];
+const ARRIVALS=[
+ ["Oct","thyssenkrupp Automotive Technology","pune","Inaugurated a new GCC","Opened"],["Oct","Augury","blr","Hub for industrial AI","Opened"],["Oct","Autodesk","pune","Expanded its GCC","Expansion"],["Oct","Kuehne+Nagel","chn","New tech centre for digital logistics","Opened"],
+ ["Sep","DoorDash","hyd","First India office; plans to scale to 3,000","Opened"],["Sep","Starbucks","chn","First India GCC; plans 800 tech jobs","Announced"],["Sep","Woodside Energy","blr","Global capability centre","Opened"],["Sep","MSD","hyd","2.5 lakh sq ft technology centre","Opened"],["Sep","Arctic Wolf","blr","Made Bengaluru its largest R&D hub","Expansion"],["Sep","SES","chn","Second office; passed 600 staff","Expansion"],
+ ["Aug","Abercrombie & Fitch","blr","GCC beyond technology","Opened"],["Aug","JLL","hyd","New GCC; plans 1,600 India hires","Opened"],["Jul","Chubb","chn","First Chennai GCC","Announced"],["Jul","Nordex","chn","First R&D centre","Announced"],["Jul","Nestlé Business Services","hyd","First India GCC operations","Announced"],
+ ["May","Airbnb","ncr","Leased 46,000 sq ft for its GCC","Lease signed"],["May","BASF","hyd","Global service and digital hub","Announced"],["Mar","Lonza","hyd","New GCC","Announced"],["Feb","ArcelorMittal (AMGBT)","hyd pune","GCC across Hyderabad and Pune","Opened"],["Feb","Festo","blr","GCC for automation engineering","Opened"],["Feb","Cohere Health","hyd","GCC for clinical intelligence","Opened"],["Jan","Western Union","hyd","AI-led GCC, with HCLTech","Opened"]
+];
+const INDUSTRIES=[
+ {id:"any",name:"Any industry",cities:[],fact:null},
+ {id:"tech",name:"Technology, software, AI",cities:["blr","hyd"],fact:"ind-tech"},
+ {id:"bfsi",name:"Banking and finance",cities:["mum","pune","hyd","blr"],fact:"ind-bfsi"},
+ {id:"pharma",name:"Pharma, healthcare, life sciences",cities:["hyd"],fact:"ind-pharma"},
+ {id:"auto",name:"Automotive, engineering, manufacturing",cities:["chn","pune"],fact:"ind-auto"},
+ {id:"semis",name:"Semiconductors",cities:["blr"],fact:"ind-semis"},
+ {id:"retail",name:"Retail and e-commerce",cities:["blr","ncr"],fact:"ind-retail"}
+];
+
+/* ---------- FACTS (the truth ledger) ---------- */
+const F={};
+function fact(id,o){F[id]=Object.assign({id},o);}
+fact("gcc-count",{topic:"GCCs",q:"How many GCCs are in India?",status:"bad",range:"536 to ~2,800",
+ values:[["aim","~1,400","Firms in its paid list (the same page also says ~1,800)"],["flexList","536","“Verified” GCCs in its directory; “not a census”"],["wisemonk","1,700+","From its own 2026 report; no method given"],["quess","1,850–1,900","“Active GCCs”, no definition"],["nz","2,117","Parent companies, running 3,728 offices"],["gccpros","2,551","GCCs in its India Atlas"],["ocean","2,800+","Any company based abroad with people in India; its main GCC page says 2,100+"]],
+ reading:"About 2,100 parent companies by the most-cited count (Nasscom-Zinnov). The others count different things: paid directories, “verified” subsets, or any foreign firm with staff here."});
+fact("lead-measure",{topic:"Cities",q:"Which city leads India's GCCs?",status:"bad",range:"Bengaluru or Hyderabad first; four different No. 2s",
+ values:[["dnb","Bengaluru 30%, then Delhi NCR 16%","Share of GCC units"],["cbre","Bengaluru ~42%, then Hyderabad ~20%","Share of GCC office leasing, 2022–H1 2026"],["jll","Bengaluru 34–39%, then Hyderabad 20–23%, Pune 15–20%","Share of GCC activity"],["gccidx","Hyderabad 1000, then Bengaluru 784, Pune 369","Its own index of validated events, updated continuously"]],
+ reading:"Bengaluru leads on the size of what already exists (centres, office space). Hyderabad leads GCC Index's ranking, which counts recent activity. Both can be true: they measure different things."});
+fact("leasing-2025",{topic:"Cities",q:"How much office space did GCCs lease in a year?",status:"bad",range:"31 to 34.9 million sq ft",
+ values:[["jll","31 million sq ft","Calendar 2025"],["vestian","34.9 million sq ft","Financial year 2024–25"]],
+ reading:"About 13% apart, partly because the periods differ. Both say GCC leasing hit a record."});
+fact("clusters",{topic:"Cities",q:"How concentrated are GCC offices?",status:"one",range:"Top 10 districts: 73% of leasing",
+ values:[["colliersMM","73%","Share of GCC leasing in the top 10 office micro-markets, ~70M sq ft over 5 years"]],
+ reading:"GCCs crowd into a few districts, which raises competition for staff there. No free source maps clusters in Pune, NCR or Mumbai."});
+fact("arrivals",{topic:"GCCs",q:"Where are new GCCs going in 2026?",status:"one",range:"Hyderabad 9 of 22",
+ values:[["sample","Hyderabad 9, Bengaluru 5, Chennai 5, Pune 3, NCR 1","22 announcements, Jan–Oct 2026"]],
+ reading:"A sample, not a complete list. Trackers often mix “announced” with “opened”."});
+CITIES.forEach(c=>{
+ fact("rent-"+c.id,{topic:"Costs",q:"Office rent in "+c.name,status:"one",verified:true,range:"₹"+c.rent+" per sq ft a month",
+  values:[["cre","₹"+c.rent,"“Market rent”, Q1 2026; office grade not stated"+(c.id==="ncr"?"; Delhi figure":"")]],
+  reading:"One source, matched against the original page. Grade A buildings in prime districts can cost more."});
+ fact("sal-"+c.id,{topic:"Talent",q:"Software engineer pay in "+c.name,status:c.id==="hyd"||c.id==="blr"?"bad":"one",range:"₹"+c.eng+" lakh median; ₹"+c.sen+" lakh senior",
+  values:[["flexSal","₹"+c.eng+" lakh (median), ₹"+c.sen+" lakh (6+ yrs)","All employers on Flexiple's platform"+(c.id==="ncr"?"; Delhi figure":"")]].concat(
+   c.id==="hyd"?[["kaam","₹35–50 lakh","Senior backend engineers at GCCs only"]]:c.id==="blr"?[["gccj","₹14–22 lakh","Mid-level (3–5 yrs) engineers at GCCs"]]:[]),
+  reading:c.id==="hyd"?"The figures measure different groups: all engineers vs senior backend engineers at GCCs. Expect GCC roles to pay above the all-employer median.":c.id==="blr"?"The ranges overlap once you match experience levels, but each source measures a different group.":"One source. GCCs often pay above the all-employer median."});
+ fact("talent-"+c.id,{topic:"Talent",q:"Talent score: "+c.name,status:"one",range:c.talent+" (Colliers score)",
+  values:[["colliers",String(c.talent),"Talent availability, quality and age profile; scale not stated"]],
+  reading:"A relative score from one property firm. Colliers says Bengaluru has nearly double Hyderabad's tech workers; Flexiple's platform shows only about 1.3×."});
+});
+fact("ind-tech",{topic:"Cities",q:"Where do technology GCCs cluster?",status:"one",range:"Bengaluru, then Hyderabad",values:[["jll","Bengaluru 34–39% of GCC activity","All GCCs; Bengaluru called “the undisputed leader”"],["bog","Tech ~49% of all GCCs","Share by industry (citing EY 2025); shares add to over 100%"]],reading:"Bengaluru has the deepest tech pool and the highest pay."});
+fact("ind-bfsi",{topic:"Cities",q:"Where do banking and finance GCCs cluster?",status:"one",range:"Mumbai, Pune, Hyderabad, Bengaluru",values:[["jll","Mumbai's “primary sector of excellence”","Qualitative"],["bog","BFSI ~27% of GCCs","Share by industry (citing EY 2025)"]],reading:"Mumbai leads for finance, but its rent is the highest of the six cities."});
+fact("ind-pharma",{topic:"Cities",q:"Where do pharma and healthcare GCCs cluster?",status:"ok",range:"Hyderabad",values:[["jllHyd","29–30% of Hyderabad's GCC leasing","Healthcare and pharma, 2024 and H1 2025; 9 of the world's top 18 pharma, biotech and med-tech firms"]],reading:"Hyderabad is the clear pharma hub: Novartis, Sanofi, Eli Lilly, Amgen, J&J, BMS and others."});
+fact("ind-auto",{topic:"Cities",q:"Where do automotive and engineering GCCs cluster?",status:"one",range:"Chennai, Pune",values:[["dnb","Chennai “a preferred location for global engineering, automotive” hubs","Qualitative"],["jll","Pune for automotive and engineering services","Qualitative"]],reading:"Chennai also has the lowest engineer pay of the six cities."});
+fact("ind-semis",{topic:"Cities",q:"Where do semiconductor GCCs cluster?",status:"one",range:"Bengaluru",values:[["jll","Bengaluru: engineering and manufacturing R&D","Qualitative; CBRE also names Bengaluru for semiconductors"]],reading:"Chip-design roles pay well above the engineer medians shown."});
+fact("ind-retail",{topic:"Cities",q:"Where do retail and e-commerce GCCs cluster?",status:"one",range:"Bengaluru, Delhi NCR",values:[["jll","Bengaluru (retail operations), Delhi NCR (e-commerce, retail)","Qualitative"]],reading:"Both are higher-cost cities."});
+fact("team-cost",{topic:"Costs",q:"Yearly all-in cost of a 25-engineer team",status:"one",range:"₹8–10 crore",values:[["omnivoo","Bengaluru ₹9.5–10 crore; Hyderabad ₹8–8.5 crore","All-in, one firm's estimate; its page is inconsistent on year-one totals"]],reading:"Treat as a rough scenario. Salaries are about 90% of the cost."});
+fact("deposit",{topic:"Costs",q:"Office security deposit",status:"one",range:"6–10 months' rent",values:[["omnivoo","6–10 months' rent; ₹24–75 lakh for 50 seats in Bengaluru","One firm's estimate"]],reading:"A large upfront cash need that flexible offices avoid."});
+fact("policy-mh",{topic:"States",q:"How many new GCCs does Maharashtra's policy target?",status:"bad",range:"~200 or 400",values:[["cbre","~200","CBRE's summary"],["pm","400 by 2029–30","State cabinet approval as reported"]],reading:"The state's own figure is 400; CBRE reports about 200. Check the policy text before relying on either."});
+fact("tier2",{topic:"Cities",q:"What share of GCC activity is in tier-2 cities?",status:"bad",range:"~7% to 9–10%",values:[["quess","9–10% (Coimbatore, Kochi, Ahmedabad)","Share of GCC activity"],["nz","~7%","All tier-2 and tier-3 cities, share of GCCs (2023–24)"]],reading:"Small either way. Senior talent there is thinner than in the big hubs."});
+fact("ai-gap",{topic:"Talent",q:"How short is GCC talent in AI and data?",status:"one",range:"43% shortfall",values:[["quess","43% in AI, data and analytics; 38% in platform engineering","GCC demand vs supply"]],reading:"From a staffing firm, which benefits from a perceived shortage."});
+fact("ansr",{topic:"Providers",q:"How many GCCs has ANSR set up?",status:"self",verified:true,range:"135 or 150+",values:[["ansr","“135 GCCs established” and “150+ Successful GCCs”","Both on the same page"],["zinnovSelf","Zinnov: “more than 220 GCCs” set up or transformed","Another firm's self-description"]],reading:"Track records are self-reported and use no shared definition of a “setup”. No setup firm we checked publishes its fees."});
+fact("eor-fees",{topic:"Providers",q:"What does an EOR cost per person a month?",status:"self",range:"$99 to $699",values:[["asanify","Asanify $99, RemoFirst $199, Multiplier $400, Deel $599, Oyster $699","Listed starting fees; Asanify ranks itself first"],["kaamEor","Deel $599, RemoFirst $199, Multiplier ~$400, Oyster $699","Matches where both list a price"],["flexHome","Flexiple $299","On Flexiple's own Indian company"],["wmAgg","Aggregators $199–399; own-entity $299–699+","Currency (1–3%), exit and other fees come on top"]],reading:"Every comparison we found is written by an EOR firm. Ask each provider whether it owns its Indian company, and for a sample invoice."});
+fact("directors",{topic:"Legal",q:"How many directors does an Indian private company need?",status:"ok",range:"2, with 1 resident in India",values:[["icsi","At least 2 directors; at least 1 stayed in India 182+ days in the year","Companies Act, Section 149"],["pkc","Same; each director needs a DSC and a DIN","Adviser checklist"]],reading:"Only one director must be resident. Resident means time spent in India, not citizenship. The other director can live abroad."});
+fact("deadlines",{topic:"Legal",q:"Key deadlines after incorporation",status:"one",range:"30, 60 and 180 days",values:[["pkc","Board meeting and auditor: 30 days. FC-GPR: 30 days from share allotment. Share certificates: 60 days. INC-20A: 180 days. FLA return: 15 July yearly","Adviser checklist; inconsistent in places"]],reading:"Confirm each date with a company secretary. Missed RBI filings carry penalties."});
+fact("exit-time",{topic:"Legal",q:"How long does it take to close an Indian subsidiary?",status:"bad",range:"3 months to 4+ years",values:[["treelife","Strike-off 3–6 months; voluntary liquidation 9–15 months","Once eligible and clean"],["es","1,570 days (4.3 years) in a cited study","Voluntary closure, no disputes; ~1,035 days waiting on tax, PF and GST clearances"]],reading:"Law-firm timelines start only after staff, lease and taxes are settled. Strike-off also needs two years without business. Plan for 1–2 years, longer if clearances drag."});
+fact("lockin",{topic:"Costs",q:"Typical office lease lock-in",status:"one",range:"3–5 years",values:[["brigade","3–5 years within leases of ~9 years","Leaving early can mean paying rent for the rest of the lock-in"]],reading:"Published by an office landlord. Flexible offices offer shorter terms at a higher price per seat."});
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cr=lakh=>(lakh/100);
+const fmtCr=v=>"₹"+(v>=10?v.toFixed(1):v.toFixed(2))+" cr";
+function ev(id,text){const f=F[id];const st=f?STATUS[f.status]:null;return '<span style="white-space:nowrap"><button class="ev" data-fact="'+id+'" title="See sources">'+esc(text)+'</button>'+(st?'<span class="dot '+st.dot+'" aria-hidden="true"></span>':'')+'</span>';}
+function chip(status){const s=STATUS[status];return '<span class="chip '+s.cls+'">'+s.label+'</span>';}
+function store(k,v){try{localStorage.setItem("gt-"+k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem("gt-"+k)}catch(e){return null}}
+
+/* ---------- drawer ---------- */
+let lastFocus=null;
+function openFact(id){
+ const f=F[id]; if(!f) return;
+ lastFocus=document.activeElement;
+ $("#dr-status").innerHTML=chip(f.status)+(f.verified?' <span class="tag">Matched original page</span>':'');
+ $("#dr-title").textContent=f.q;
+ let h='<p class="status-line">'+esc(STATUS[f.status].help)+'</p>';
+ h+='<div class="reading"><b>Range:</b> <span class="num">'+esc(f.range)+'</span><br><b>Our reading:</b> '+esc(f.reading)+'</div>';
+ h+='<h3 style="margin:6px 0 0">'+f.values.length+' source'+(f.values.length>1?'s':'')+'</h3>';
+ f.values.forEach(([sid,val,counts])=>{const s=S[sid];
+  h+='<div class="src"><div class="val">'+esc(val)+'</div><div>'+esc(counts)+'</div><div class="who"><a href="'+esc(s.url)+'" target="_blank" rel="noopener">'+esc(s.name)+'</a> · '+esc(s.title)+' · '+esc(s.date)+'</div><div class="sells"><b>Publisher sells:</b> '+esc(s.sells)+'</div></div>';});
+ h+='<p class="note">Fact ID '+esc(f.id)+' · Topic: '+esc(f.topic)+'</p>';
+ $("#dr-body").innerHTML=h;
+ $("#drawer").hidden=false;$("#scrim").hidden=false;$("#dr-close").focus();
+}
+function closeFact(){$("#drawer").hidden=true;$("#scrim").hidden=true;if(lastFocus&&lastFocus.focus)lastFocus.focus();}
+$("#dr-close").addEventListener("click",closeFact);
+$("#scrim").addEventListener("click",closeFact);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#drawer").hidden)closeFact();});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-fact]");if(b){e.preventDefault();openFact(b.dataset.fact);}});
+
+/* ---------- tabs ---------- */
+const TABS=["overview","home","cities","plan","roadmap","ask","facts"];
+const CRUMB={overview:"Overview",home:"About and plans",cities:"Cities",plan:"Compare cities",roadmap:"Setup roadmap",ask:"Ask GroundTruth",facts:"All facts"};
+function show(t,scroll){if(!TABS.includes(t))t="overview";curView=t;const cb=$("#crumb");if(cb)cb.textContent=CRUMB[t];const fab=$("#fab");if(fab&&$("#apanel").hidden)fab.hidden=t==="ask";TABS.forEach(x=>{const tab=$("#tab-"+x);if(tab)tab.setAttribute("aria-selected",x===t);$("#view-"+x).hidden=x!==t;});if(scroll)window.scrollTo({top:0,behavior:"instant"});}
+function go(t){show(t,true);const v=$("#view-"+t);if(v){v.classList.remove("view-in");void v.offsetWidth;v.classList.add("view-in");}setTimeout(armReveal,60);try{history.replaceState(null,"","#"+t)}catch(e){}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b){e.preventDefault();go(b.dataset.go);if(b.dataset.city){cityId=b.dataset.city;renderCity();}if(b.dataset.road){$("#r-city").value=b.dataset.road;renderRoad();}if(b.dataset.scroll){setTimeout(()=>{const t=document.getElementById(b.dataset.scroll)||document.querySelector("[data-anchor=\""+b.dataset.scroll+"\"]");if(t)t.scrollIntoView({behavior:"smooth",block:"start"});},80);}}});
+$("#go-home").addEventListener("click",()=>go("overview"));
+let cbI=0;$("#count-bars").innerHTML=[...F["gcc-count"].values].sort((x,y)=>parseFloat(x[1].replace(/[~,+]/g,""))-parseFloat(y[1].replace(/[~,+]/g,""))).map(v=>{const n=parseFloat(v[1].replace(/[~,+]/g,"").split("–")[0]);return '<div class="cb" style="--i:'+(cbI++)+'"><span class="cb-n num">'+esc(v[1])+'</span><span class="cb-t"><span class="cb-f" style="display:block;width:'+(n/2800*100)+'%"></span></span><span class="cb-s">'+esc(S[v[0]].name.replace(/ \(.*\)/,""))+'</span></div>';}).join("");
+
+/* ---------- legend ---------- */
+$("#legend").innerHTML=Object.values(STATUS).map(s=>'<span class="chip '+s.cls+'">'+s.label+'</span>').join("")+'<span>Dotted underline = tap for sources</span>';
+
+/* ---------- CITY PLANNER ---------- */
+$("#p-ind").innerHTML=INDUSTRIES.map(i=>'<option value="'+i.id+'">'+esc(i.name)+'</option>').join("");
+const MEASURES={
+ units:{label:"Number of centres",key:"units",txt:c=>c.units+"%",src:"D&B, citing Zinnov and AMCHAM",lede:"Counting GCC centres, Delhi NCR comes second."},
+ leasing:{label:"Office space leased",key:"leasing",txt:c=>c.leasingTxt,src:"CBRE, 2022 to H1 2026",lede:"Counting office space, Hyderabad comes second and Mumbai drops to last."},
+ activity:{label:"Overall activity",key:"activity",txt:c=>c.activityTxt,src:"JLL, Feb 2026 (three cities only)",lede:"JLL puts Pune far higher than CBRE does, and gives no figure for the other three."},
+ idx:{label:"GCC Index score",key:"idx",txt:c=>c.idx?String(c.idx):"not given",src:"GCC Index, Oct 2026 (three cities shown free)",lede:"GCC Index's own score puts Hyderabad first, ahead of Bengaluru."}
+};
+let measure="leasing";
+$("#p-measure").innerHTML=Object.entries(MEASURES).map(([k,m])=>'<button type="button" data-m="'+k+'" aria-pressed="'+(k===measure)+'">'+esc(m.label)+'</button>').join("");
+$("#p-measure").addEventListener("click",e=>{const b=e.target.closest("button[data-m]");if(!b)return;measure=b.dataset.m;[...$("#p-measure").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderMeasure();});
+
+function plan(){
+ const n=Math.max(1,+$("#p-team").value||0), s=(+$("#p-sen").value)/100, sq=Math.max(1,+$("#p-sqft").value||0);
+ const ind=INDUSTRIES.find(i=>i.id===$("#p-ind").value)||INDUSTRIES[0];
+ const rows=CITIES.map(c=>{const sal=cr(n*((1-s)*c.eng+s*c.sen));const rent=n*sq*c.rent*12/1e7;return Object.assign({},c,{sal,rentYr:rent,total:sal+rent,fit:ind.cities.includes(c.id)});}).sort((a,b)=>a.total-b.total);
+ return {n,s,sq,ind,rows};
+}
+function renderPlan(){
+ const p=plan();$("#p-sen-out").textContent=Math.round(p.s*100)+"%";
+ const cheap=p.rows[0], fits=p.rows.filter(r=>r.fit), deep=[...p.rows].sort((a,b)=>b.talent-a.talent)[0];
+ const bestFit=fits[0];
+ let pk='<div class="panel"><div class="k">Lowest pay + rent</div><div class="v">'+esc(cheap.name)+'</div><div class="num">'+fmtCr(cheap.total)+' a year</div></div>';
+ pk+='<div class="panel"><div class="k">Deepest talent</div><div class="v">'+esc(deep.name)+'</div><div>Colliers score '+ev("talent-"+deep.id,String(deep.talent))+'</div></div>';
+ pk+='<div class="panel"><div class="k">'+(p.ind.id==="any"?"Pick an industry":"Hub for your industry")+'</div><div class="v">'+(bestFit?esc(fits.map(f=>f.name).join(", ")):"—")+'</div><div>'+(p.ind.fact?ev(p.ind.fact,"See evidence"):'<span class="hint">Highlights matching cities</span>')+'</div></div>';
+ $("#p-pick").innerHTML=pk;
+ let t='<thead><tr><th>City</th><th>Rent<br>₹/sq ft/mo</th><th>Engineer pay<br>₹ lakh/yr</th><th>Talent<br>score</th><th>Salary bill<br>a year</th><th>Office rent<br>a year</th><th>Pay + rent<br>a year</th><th>New GCCs<br>2026</th></tr></thead><tbody>';
+ p.rows.forEach(r=>{t+='<tr class="'+(r.fit?"fit":"")+'"><td><b>'+esc(r.name)+'</b>'+(r.fit?' <span class="tag">Industry hub</span>':'')+'<div class="hint">'+esc(r.clusters)+'</div></td>'+
+  '<td>'+ev("rent-"+r.id,r.rent.toFixed(1))+'</td><td>'+ev("sal-"+r.id,r.eng.toFixed(1)+" / "+r.sen.toFixed(1))+'</td><td>'+ev("talent-"+r.id,r.talent.toFixed(1))+'</td>'+
+  '<td class="num">'+fmtCr(r.sal)+'</td><td class="num">'+fmtCr(r.rentYr)+'</td><td class="num"><b>'+fmtCr(r.total)+'</b></td><td>'+ev("arrivals",String(r.arrivals))+'</td></tr>';});
+ t+='</tbody>';$("#p-table").innerHTML=t;
+ renderMeasure();
+ store("plan",JSON.stringify({ind:p.ind.id,n:p.n,s:$("#p-sen").value,sq:p.sq}));
+}
+function renderMeasure(){
+ const m=MEASURES[measure];
+ const rows=[...CITIES].sort((a,b)=>(b[m.key]??-1)-(a[m.key]??-1));
+ const max=Math.max(...CITIES.map(c=>c[m.key]||0));
+ $("#m-title").textContent="Who leads? By "+m.label.toLowerCase();
+ $("#m-src").innerHTML=ev("lead-measure",m.src);
+ $("#m-lede").textContent=m.lede;
+ $("#m-bars").innerHTML=rows.map(c=>{const v=c[m.key];return '<div class="bar"><span>'+esc(c.name)+'</span><span class="track"><span class="fill" style="display:block;width:'+(v?v/max*100:0)+'%"></span></span><span class="num">'+esc(m.txt(c))+'</span></div>';}).join("");
+}
+["#p-ind","#p-team","#p-sen","#p-sqft"].forEach(s=>$(s).addEventListener("input",renderPlan));
+
+/* ---------- ROADMAP ---------- */
+const ROUTES={own:"Own company from day one",eor:"EOR first, own company later",eoronly:"EOR only (testing)"};
+let route="eor";
+$("#r-route").innerHTML=Object.entries(ROUTES).map(([k,v])=>'<button type="button" data-r="'+k+'" aria-pressed="'+(k===route)+'">'+esc(v)+'</button>').join("");
+$("#r-route").addEventListener("click",e=>{const b=e.target.closest("button[data-r]");if(!b)return;route=b.dataset.r;[...$("#r-route").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderRoad();flash("#r-plan");});
+$("#r-city").innerHTML=CITIES.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function addDays(d,n){const x=new Date(d.getTime());x.setUTCDate(x.getUTCDate()+n);return x;}
+function fmt(d){return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+d.getUTCFullYear();}
+function nextDate(from,m,day){let y=from.getUTCFullYear();let d=new Date(Date.UTC(y,m,day));if(d<from)d=new Date(Date.UTC(y+1,m,day));return d;}
+function roadmap(){
+ let start=new Date(($("#r-start").value||"2026-10-20")+"T00:00:00Z");if(isNaN(start))start=new Date(Date.UTC(2026,9,20));
+ const city=CITIES.find(c=>c.id===$("#r-city").value)||CITIES[0];
+ const lock=Math.max(0,+$("#r-lock").value||0);
+ const st=[];
+ if(route!=="own"){
+  st.push({name:"Start hiring through an EOR",when:"Week 1–3",steps:[
+   {d:addDays(start,5),t:"First hires can start",b:"Own-entity EORs onboard in about 5–14 days; partner-based EORs 7–21+ days.",f:"eor-fees"},
+   {d:start,t:"Check who really employs your staff",b:"Ask for the EOR's Indian company registration number, a sample contract and a sample invoice before signing.",f:"eor-fees"},
+   {d:start,t:"Budget the monthly fee",b:"$99–$699 per person a month on top of salary, plus currency and exit fees.",f:"eor-fees"},
+   {d:addDays(start,365),t:"Review the tax risk of staying on the EOR",b:"The longer staff work under your direction through an EOR, the higher the chance India taxes your parent company here (permanent establishment risk). Get advice before the first year ends.",warn:true}
+  ]});
+ }
+ if(route!=="eoronly"){
+  const s0=route==="own"?start:addDays(start,30);
+  const inc=addDays(s0,35);
+  st.push({name:"Register your Indian company",when:fmt(s0)+" to about "+fmt(inc),steps:[
+   {d:s0,t:"Choose 2 directors, 1 resident in India",b:"The resident director must have spent 182+ days in India in the year. The other can live abroad. Each needs a digital signature (DSC) and director ID (DIN).",f:"directors"},
+   {d:s0,t:"Choose 2 shareholders",b:"Usually the parent holds almost every share and a group company or nominee holds one.",f:"directors"},
+   {d:addDays(s0,21),t:"Get foreign documents notarised and apostilled",b:"Directors' ID and address proof, and the parent's board resolution. Often the slowest step: 1–3 weeks."},
+   {d:inc,t:"File SPICe+ with the Ministry of Corporate Affairs",b:"One filing gives the company number (CIN), PAN and TAN. No minimum capital is required."}
+  ]});
+  st.push({name:"First 6 months: deadlines that carry fines",when:"From incorporation on "+fmt(inc),steps:[
+   {d:addDays(inc,30),t:"First board meeting and first auditor (ADT-1)",b:"Within 30 days of incorporation.",f:"deadlines"},
+   {d:addDays(inc,14),t:"Open a bank account and receive share money",b:"The company needs cash to pay salaries before it can bill the parent."},
+   {d:addDays(inc,44),t:"Report money received from abroad (ARF) to RBI",b:"Within 30 days of receiving it, on RBI's FIRMS portal. Assumes money arrives about 2 weeks after incorporation.",f:"deadlines"},
+   {d:addDays(inc,51),t:"Report shares issued to the parent (FC-GPR)",b:"Within 30 days of allotting shares. Late RBI filings carry penalties.",f:"deadlines"},
+   {d:addDays(inc,60),t:"Issue share certificates",b:"Within 60 days of incorporation.",f:"deadlines"},
+   {d:addDays(inc,60),t:"Register under the "+city.state+" Shops and Establishments Act",b:"Within 30 days of starting work in "+city.name+"."},
+   {d:addDays(inc,60),t:"Register for GST and file a Letter of Undertaking (LUT)",b:"Before the first invoice to the parent, so services can be billed without GST."},
+   {d:addDays(inc,180),t:"Declare commencement of business (INC-20A)",b:"Within 180 days of incorporation.",f:"deadlines"},
+   {d:addDays(inc,90),t:"PF, ESI, gratuity and a harassment (POSH) committee",b:"Each starts as headcount crosses 10 or 20 people."}
+  ]});
+  if(route==="eor")st[st.length-1].steps.push({d:addDays(inc,120),t:"Move staff from the EOR to your company",b:"New contracts, each person's consent, and their years of service carried over for gratuity and leave."});
+  const fla=nextDate(addDays(inc,1),6,15), ceb=nextDate(addDays(inc,180),10,30);
+  st.push({name:"Every year",when:"Recurring",steps:[
+   {d:fla,t:"Foreign Liabilities and Assets (FLA) return to RBI",b:"By 15 July every year, even with no new investment.",f:"deadlines"},
+   {d:ceb,t:"Transfer pricing report (Form 3CEB)",b:"By 30 November. The India company must charge the parent a fair price, usually cost plus a markup."},
+   {d:null,t:"4 board meetings, an AGM, accounts and annual return",b:"Board meetings no more than 120 days apart; accounts (AOC-4) and return (MGT-7) filed after the AGM."},
+   {d:null,t:"Labour codes in force since 21 Nov 2025",b:"They change how wages, overtime and benefits are counted."}
+  ]});
+ }
+ const lockEnd=addDays(start,Math.round(lock*365.25));
+ st.push({name:"Plan your exit now",when:"Decided on day one",warn:true,steps:[
+  {d:lockEnd,t:"Office lease lock-in ends",b:lock?"Leaving before this date can mean paying rent for the rest of the lock-in.":"No lock-in entered.",f:"lockin",warn:true},
+  {d:null,t:route==="eoronly"?"Leaving is simpler on an EOR":"Closing the company takes 1–2 years in practice",b:route==="eoronly"?"You end the EOR contract and settle staff dues. Check the EOR's exit fees first.":"Strike-off takes 3–6 months but only after two years without business. Voluntary liquidation takes 9–15 months. A government-cited study found 4.3 years once tax, PF and GST clearances were counted.",f:"exit-time",warn:route!=="eoronly"},
+  {d:null,t:"Settle staff, taxes and RBI reporting before closing",b:"Final pay and gratuity, GST cancellation, final tax returns, final FLA return, and money sent home through the bank with forms 15CA and 15CB."}
+ ]});
+ st.forEach(g=>g.steps.sort((a,b)=>(a.d?a.d.getTime():Infinity)-(b.d?b.d.getTime():Infinity)));
+ return {start,city,lock,stages:st};
+}
+function renderRoad(){
+ const r=roadmap();
+ $("#r-compare").innerHTML=
+  '<div class="panel"><h3>Own Indian company</h3><ul><li>Full control; you own staff and IP directly</li><li>Cheapest per person once the team is large</li><li>Needed for most state incentives and SEZ/STPI benefits</li><li>About 5 weeks to register, ~6 months to run fully; all compliance is yours</li></ul></div>'+
+  '<div class="panel"><h3>EOR</h3><ul><li>Hire in days, no company to set up or close</li><li>'+ev("eor-fees","$99–$699")+' per person a month</li><li>Less control; staff legally work for the EOR</li><li>Tax risk for the parent if used too long</li></ul></div>';
+ let h='<div class="result-head"><h2>'+esc(ROUTES[route])+' in '+esc(r.city.name)+'</h2><span class="hint">Dates are estimates from your start date</span></div>';
+ const all=[];r.stages.forEach(s=>s.steps.forEach(x=>{if(x.d)all.push(x.d);}));all.sort((a,b)=>a-b);
+ const c=r.city, lk=Math.max(0,+$("#r-lock").value||0);
+ h+='<div class="rsum"><div class="rsum-row"><span class="rsum-k">Your choices</span><span class="rsum-c">'+esc(ROUTES[route])+'</span><span class="rsum-c">'+esc(c.name)+', '+esc(c.state)+'</span><span class="rsum-c">Start '+fmt(all[0]||new Date())+'</span><span class="rsum-c">'+lk+'-year lease</span></div>'+
+  '<div class="rsum-row"><span class="rsum-k">What '+esc(c.name)+' changes</span><span>Office rent '+ev("rent-"+c.id,"₹"+c.rent)+'/sq ft a month</span><span>Engineer pay '+ev("sal-"+c.id,"₹"+c.eng+" L")+' a year</span><span>Registers under the '+esc(c.state)+' Shops Act</span></div>'+
+  '<div class="rsum-row"><span class="rsum-k">State incentive</span><span>'+esc(c.policy)+'</span></div>'+
+  '<p class="rsum-n">'+r.stages.reduce((n,s)=>n+s.steps.length,0)+' steps from '+fmt(all[0]||new Date())+' to '+fmt(all[all.length-1]||new Date())+'. Change any choice in Your setup and this plan updates.</p></div>';
+ r.stages.forEach(s=>{h+='<div class="stage"><h3>'+esc(s.name)+' <span class="when">'+esc(s.when)+'</span></h3><ol class="steps">';
+  s.steps.forEach(x=>{h+='<li class="'+(x.warn?"warn":"")+'"><div class="step-top"><b>'+esc(x.t)+'</b>'+(x.d?'<span class="date">'+fmt(x.d)+'</span>':'')+'</div><div class="step-body">'+esc(x.b)+(x.f?' '+ev(x.f,"Sources"):'')+'</div></li>';});
+  h+='</ol></div>';});
+ h+='<p class="note">State incentive in '+esc(r.city.state)+': '+esc(r.city.policy)+'. This is a guide, not legal advice; confirm dates with a company secretary.</p>';
+ $("#r-plan").innerHTML=h;
+}
+["#r-start","#r-city","#r-lock"].forEach(s=>$(s).addEventListener("input",()=>{renderRoad();flash("#r-plan");const r=$(".rsum");if(r){r.classList.remove("rsum-hi");void r.offsetWidth;r.classList.add("rsum-hi");}}));
+
+/* ---------- downloads ---------- */
+let downloads=null;
+async function save(filename,data,msgEl){
+ msgEl.textContent="";
+ if(!downloads){msgEl.textContent="Downloads aren't available in this view.";return;}
+ try{await downloads.save({filename,data});msgEl.textContent="Saved "+filename;}
+ catch(e){msgEl.textContent=e&&e.code==="declined"?"Download cancelled.":"Couldn't save the file here.";}
+}
+function srcLine(id){const f=F[id];return f.values.map(v=>S[v[0]].name+" ("+S[v[0]].date+"): "+S[v[0]].url).join("; ");}
+$("#p-brief").addEventListener("click",()=>{
+ const p=plan();
+ let md="# GCC city brief\n\nPrepared with GroundTruth (prototype), October 2026.\n\n## Your plan\n\n- Industry: "+p.ind.name+"\n- Team: "+p.n+" engineers, "+Math.round(p.s*100)+"% senior\n- Office space: "+p.sq+" sq ft per person\n\n## Cities by yearly pay + rent\n\n| City | Rent ₹/sq ft/mo | Median / senior pay ₹ lakh | Salary bill | Rent | Pay + rent | Industry hub |\n|---|---|---|---|---|---|---|\n";
+ p.rows.forEach(r=>{md+="| "+r.name+" | "+r.rent+" | "+r.eng+" / "+r.sen+" | "+fmtCr(r.sal)+" | "+fmtCr(r.rentYr)+" | "+fmtCr(r.total)+" | "+(r.fit?"Yes":"")+" |\n";});
+ md+="\nSalary bill uses median pay before benefits, so the real cost is higher.\n\n## Where sources disagree\n\n- Which city is No. 2 depends on the measure: Delhi NCR by number of centres, Hyderabad by office space.\n- Hyderabad senior pay: ₹24.2 lakh (all employers, Flexiple) vs ₹35–50 lakh (senior backend at GCCs, Kaam).\n\n## Sources\n\n- Rent: "+srcLine("rent-blr")+"\n- Pay: "+srcLine("sal-blr")+"\n- Talent: "+srcLine("talent-blr")+"\n- Who leads: "+srcLine("lead-measure")+"\n"+(p.ind.fact?"- Industry: "+srcLine(p.ind.fact)+"\n":"");
+ save("gcc-city-brief.md",md,$("#p-brief-msg"));
+});
+$("#r-dl").addEventListener("click",()=>{
+ const r=roadmap();
+ let md="# GCC setup checklist: "+ROUTES[route]+" in "+r.city.name+"\n\nStart date: "+fmt(r.start)+". Dates are estimates. Guide only, not legal advice.\n";
+ r.stages.forEach(s=>{md+="\n## "+s.name+"\n\n";s.steps.forEach(x=>{md+="- [ ] "+(x.d?"**"+fmt(x.d)+"**: ":"")+x.t+". "+x.b+(x.f?" (Sources: "+srcLine(x.f)+")":"")+"\n";});});
+ save("gcc-setup-checklist.md",md,$("#r-dl-msg"));
+});
+
+/* ---------- FACTS list ---------- */
+const TOPICS=["All","GCCs","Cities","Costs","Talent","States","Providers","Legal"];
+let topic="All", stF="all";
+$("#f-topic").innerHTML=TOPICS.map(t=>'<button type="button" data-t="'+t+'" aria-pressed="'+(t===topic)+'">'+t+'</button>').join("");
+$("#f-status").innerHTML='<button type="button" data-s="all" aria-pressed="true">Any status</button>'+Object.entries(STATUS).map(([k,s])=>'<button type="button" data-s="'+k+'" aria-pressed="false">'+s.label+'</button>').join("");
+$("#f-topic").addEventListener("click",e=>{const b=e.target.closest("button[data-t]");if(!b)return;topic=b.dataset.t;[...$("#f-topic").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderFacts();});
+$("#f-status").addEventListener("click",e=>{const b=e.target.closest("button[data-s]");if(!b)return;stF=b.dataset.s;[...$("#f-status").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderFacts();});
+function renderFacts(){
+ const list=Object.values(F).filter(f=>(topic==="All"||f.topic===topic)&&(stF==="all"||f.status===stF)).filter(f=>!/^(rent|sal|talent)-/.test(f.id)||topic!=="All"||stF!=="all"||f.id.endsWith("-blr")||f.id.endsWith("-hyd"));
+ $("#f-list").innerHTML=list.map(f=>'<button class="fact" data-fact="'+f.id+'"><span class="q">'+esc(f.q)+'</span><span class="range">'+esc(f.range)+'</span><span class="meta">'+chip(f.status)+'<span>'+f.values.length+' source'+(f.values.length>1?'s':'')+'</span><span class="tag">'+esc(f.topic)+'</span></span></button>').join("")||'<p class="lede">No facts match these filters.</p>';
+}
+
+/* ---------- ASK (Claude, answering only from the ledger) ---------- */
+const SUGG=["Is Hyderabad or Chennai better for a pharma team of 40?","How many directors do I need, and must they be Indian?","Should I start with an EOR or my own company?","How long does it take to leave India if it doesn't work out?","How many GCCs are there in India, really?"];
+$("#sugg").innerHTML=SUGG.map(s=>'<button type="button">'+esc(s)+'</button>').join("");
+function ledgerText(){
+ let t="FACTS (id: question | status | sources | our reading)\n";
+ Object.values(F).forEach(f=>{t+="["+f.id+"] "+f.q+" | "+STATUS[f.status].label+" | "+f.values.map(v=>S[v[0]].name+" ("+S[v[0]].date+", sells: "+S[v[0]].sells+"): "+v[1]+" — "+v[2]).join("; ")+" | "+f.reading+"\n";});
+ t+="\nCITY NOTES\n"+CITIES.map(c=>c.name+": clusters "+c.clusters+"; state policy "+c.policy).join("\n");
+ t+="\nNEW GCCs IN 2026 (our sample of 22, [arrivals]): "+ARRIVALS.map(a=>a[1]+" ("+a[2].split(" ").map(x=>CN[x]).join("/")+", "+a[0]+", "+a[4]+")").join("; ");
+ t+="\nROUTES: EOR = a firm legally employs your India staff; own company = Indian private limited subsidiary. Incorporation takes about 5 weeks including apostille.";
+ return t;
+}
+const RULES="You are GroundTruth's assistant for companies planning a Global Capability Centre (GCC) in India. Answer ONLY using the FACTS below. After each claim, cite the fact id in square brackets, e.g. [rent-hyd]. If sources disagree, say so and give the range and why. If the FACTS do not cover the question, say plainly: \"GroundTruth doesn't have checked data on that yet\" and suggest who could answer it. Never invent numbers. Write in plain English for a first-time reader, under 160 words, using short paragraphs or a short bullet list. Use the PAGE CONTEXT to understand what 'this', 'here' or 'my plan' refers to. For legal topics, end with: \"Confirm with a company secretary or lawyer.\"\n\n";
+let sample=null, turns=[], ctl=null, curView="overview";
+function pageContext(){
+ if(curView==="cities"){const c=CITIES.find(x=>x.id===cityId);return "The user is viewing the city page for "+c.name+".";}
+ if(curView==="plan"){const p=plan();return "The user is in the city planner: industry "+p.ind.name+", "+p.n+" engineers, "+Math.round(p.s*100)+"% senior, "+p.sq+" sq ft per person. Yearly totals (median salary + rent): "+p.rows.map(r=>r.name+" "+fmtCr(r.total)).join(", ")+".";}
+ if(curView==="roadmap"){const r=roadmap();return "The user is in the setup roadmap: route '"+ROUTES[route]+"', city "+r.city.name+", start "+fmt(r.start)+", lease lock-in "+r.lock+" years.";}
+ if(curView==="facts")return "The user is browsing the list of all facts.";
+ return "The user is on the overview page.";
+}
+function contextSugg(){
+ if(curView==="cities"){const c=CITIES.find(x=>x.id===cityId);return ["What should I know before choosing "+c.name+"?","Which industries fit "+c.name+"?","How does "+c.name+" compare on cost?"];}
+ if(curView==="plan")return ["Which city is cheapest for my plan, and what's the catch?","Is the salary data reliable?","Which city suits my industry best?"];
+ if(curView==="roadmap")return ["Which deadlines come first on my route?","When should we move off the EOR?","What does leaving India involve?"];
+ return SUGG.slice(0,3);
+}
+function renderAnswer(text){
+ let h=esc(text).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+ h=h.replace(/\[([a-z0-9-]+(?:\s*,\s*[a-z0-9-]+)*)\]/gi,(m,ids)=>ids.split(/\s*,\s*/).map(id=>F[id]?'<button class="cite" data-fact="'+id+'">'+id+'</button>':esc("["+id+"]")).join(" "));
+ const blocks=h.split(/\n{2,}/).map(b=>{const lines=b.split("\n");if(lines.every(l=>/^\s*[-•*]\s+/.test(l)))return "<ul>"+lines.map(l=>"<li>"+l.replace(/^\s*[-•*]\s+/,"")+"</li>").join("")+"</ul>";return "<p>"+lines.join("<br>")+"</p>";});
+ return blocks.join("");
+}
+const CHATS=["#chat","#pchat"];
+function addMsg(role,html){const els=CHATS.map(sel=>{const box=$(sel);const d=document.createElement("div");d.className="msg "+role;d.innerHTML=html;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;});
+ return {set(h){els.forEach(d=>{d.innerHTML=h;const box=d.parentElement;box.scrollTop=box.scrollHeight;});}};}
+function metaRow(text){const ids=[...new Set((text.match(/\[([a-z0-9-]+(?:\s*,\s*[a-z0-9-]+)*)\]/gi)||[]).flatMap(m=>m.slice(1,-1).split(/\s*,\s*/)).filter(id=>F[id]))];
+ return '<div class="meta-row"><span>'+(ids.length?"Based on "+ids.length+" checked fact"+(ids.length>1?"s":""):"No checked fact cited")+'</span><button type="button" data-copy>Copy</button></div>';}
+addMsg("bot",renderAnswer("Hi! Ask me about cities, costs, setup rules, new GCCs or leaving India. I'll only use GroundTruth's checked facts and show where each one comes from [gcc-count]."));
+function busy(on){["#ask-go","#pask-go"].forEach(s=>{$(s).disabled=on;});$("#ask-stop").hidden=!on;}
+async function ask(q){
+ q=q.trim();if(!q)return;
+ addMsg("user",esc(q));
+ if(!sample){addMsg("bot","<p>Ask GroundTruth runs in the hosted prototype on claude.ai, so it can't answer in this downloaded copy. Every fact and source still works here.</p>");return;}
+ const out=addMsg("bot",'<span class="typing" aria-label="Thinking"><i></i><i></i><i></i></span>');
+ busy(true);ctl=new AbortController();
+ const ctx="PAGE CONTEXT: "+pageContext();
+ const history=turns.slice(-6);
+ const msgs=[{role:"user",content:RULES+ledgerText()+"\n\n"+ctx+"\n\nQUESTION: "+q}];
+ const conv=history.length?[{role:"user",content:RULES+ledgerText()},{role:"assistant",content:"Understood. I'll answer only from these facts, with citations."}].concat(history,[{role:"user",content:ctx+"\n\n"+q}]):msgs;
+ try{
+  const {text}=await sample(conv,{signal:ctl.signal,cache:false,modelTier:"default",onText:({text})=>{out.set(renderAnswer(text));}});
+  out.set(renderAnswer(text)+metaRow(text));
+  turns.push({role:"user",content:q},{role:"assistant",content:text});
+ }catch(e){
+  const kept=e&&e.text?renderAnswer(e.text):"";
+  const m={not_granted:"Ask GroundTruth needs your permission to use Claude. The other tools work without it.",rate_limited:"Too many questions at once. Wait a moment, then ask again.",cancelled:"Stopped."}[e&&e.code]||"Something went wrong getting an answer. Try again in a moment.";
+  out.set(kept+'<p class="note">'+esc(m)+'</p>');
+ }finally{busy(false);ctl=null;}
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-copy]");if(!b)return;const txt=b.closest(".msg").innerText.replace(/Based on.*Copy$/s,"").trim();
+ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{b.textContent="Copied";},()=>{const r=document.createRange();r.selectNodeContents(b.closest(".msg"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="Selected";});});
+$("#ask-form").addEventListener("submit",e=>{e.preventDefault();const v=$("#ask-in").value;$("#ask-in").value="";ask(v);});
+$("#pask-form").addEventListener("submit",e=>{e.preventDefault();const v=$("#pask-in").value;$("#pask-in").value="";ask(v);});
+$("#ask-stop").addEventListener("click",()=>ctl&&ctl.abort());
+$("#sugg").addEventListener("click",e=>{const b=e.target.closest("button");if(b)ask(b.textContent);});
+$("#psugg").addEventListener("click",e=>{const b=e.target.closest("button");if(b)ask(b.textContent);});
+function openPanel(){$("#psugg").innerHTML=contextSugg().map(x=>'<button type="button">'+esc(x)+'</button>').join("");
+ const names={overview:"the overview",cities:"this city page",plan:"your city comparison",roadmap:"your setup roadmap",facts:"the facts list",home:"the about page"};
+ $("#ap-ctx").textContent="Knows you're on "+(names[curView]||"this page")+" · checked facts only";
+ $("#apanel").hidden=false;$("#fab").hidden=true;setTimeout(()=>$("#pask-in").focus(),50);}
+function closePanel(){$("#apanel").hidden=true;$("#fab").hidden=curView==="ask";}
+$("#fab").addEventListener("click",openPanel);$("#open-ai").addEventListener("click",openPanel);
+$("#ap-close").addEventListener("click",closePanel);
+$("#ap-full").addEventListener("click",()=>{closePanel();go("ask");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#apanel").hidden)closePanel();});
+
+
+/* ---------- HOME: rankings, feed, industries ---------- */
+const CN=Object.fromEntries(CITIES.map(c=>[c.id,c.name]));
+function renderRank(){
+ const cols=[["units","Share of centres","D&B / Zinnov",c=>c.units+"%"],["leasing","Share of office space","CBRE",c=>c.leasingTxt],["activity","Share of activity","JLL",c=>c.activityTxt],["idx","GCC Index score","GCC Index",c=>c.idx?String(c.idx):"not given"]];
+ const top={};cols.forEach(([k])=>{top[k]=[...CITIES].sort((a,b)=>(b[k]||0)-(a[k]||0))[0].id;});
+ let h='<thead><tr><th>City</th>'+cols.map(c=>'<th>'+esc(c[1])+'<br><span style="text-transform:none;letter-spacing:0;font-weight:400">'+esc(c[2])+'</span></th>').join("")+'<th>New in 2026<br><span style="text-transform:none;letter-spacing:0;font-weight:400">Our sample</span></th></tr></thead><tbody>';
+ CITIES.forEach(c=>{h+='<tr><td><button class="ev-link" style="font-size:15px;color:var(--ink);font-weight:600" data-go="cities" data-city="'+c.id+'">'+esc(c.name)+'</button></td>'+cols.map(([k,,,f])=>'<td class="num'+(top[k]===c.id?' lead':'')+'">'+esc(f(c))+'</td>').join("")+'<td class="num">'+c.arrivals+'</td></tr>';});
+ h+='</tbody>';$("#rank-table").innerHTML=h+'';
+ $("#rank-table").insertAdjacentHTML("afterend","");
+}
+let feedCity="all";
+function renderFeed(){
+ const opts=[["all","All cities"]].concat(CITIES.filter(c=>c.id!=="mum").map(c=>[c.id,c.name]));
+ $("#feed-city").innerHTML=opts.map(([k,v])=>'<button type="button" data-fc="'+k+'" aria-pressed="'+(k===feedCity)+'">'+esc(v)+(k==="all"?"":" ("+ARRIVALS.filter(a=>a[2].split(" ").includes(k)).length+")")+'</button>').join("");
+ const list=ARRIVALS.filter(a=>feedCity==="all"||a[2].split(" ").includes(feedCity));
+ $("#feed").innerHTML=list.map((a,i)=>'<div class="ev-card" style="--i:'+i+'"><div class="top"><b>'+esc(a[1])+'</b><span class="chip stg-'+a[4].split(" ")[0]+'">'+esc(a[4])+'</span></div><span class="what">'+esc(a[3])+'</span><span class="city">'+esc(a[2].split(" ").map(x=>CN[x]).join(" and "))+' · '+esc(a[0])+' 2026</span></div>').join("");
+}
+$("#feed-city").addEventListener("click",e=>{const b=e.target.closest("button[data-fc]");if(!b)return;feedCity=b.dataset.fc;renderFeed();flash("#feed");});
+function renderInds(){
+ $("#inds").innerHTML=INDUSTRIES.filter(i=>i.id!=="any").map(i=>'<button class="ind" data-fact="'+i.fact+'"><span>'+esc(i.name)+'</span><b class="cities">'+esc(i.cities.map(c=>CN[c]).join(", "))+'</b><span>'+esc(F[i.fact].reading)+'</span></button>').join("");
+}
+/* ---------- CITY PAGES ---------- */
+let cityId="hyd";
+function renderCity(){
+ $("#city-pick").innerHTML=CITIES.map(c=>'<button type="button" class="cpick" data-cp="'+c.id+'" aria-pressed="'+(c.id===cityId)+'">'+lm(c.id,"ico")+esc(c.name)+'</button>').join("");
+ const c=CITIES.find(x=>x.id===cityId);
+ const inds=INDUSTRIES.filter(i=>i.cities.includes(c.id));
+ const arr=ARRIVALS.filter(a=>a[2].split(" ").includes(c.id));
+ let h='<div class="cbanner"><div class="cb-txt"><p class="eyebrow">'+esc(c.state)+'</p><h2 class="ph">'+esc(c.name)+'</h2><p>'+(inds.length?'Industry hub for: '+esc(inds.map(i=>i.name).join("; ")):'GCC city profile')+'</p><span class="chip s-ok">'+esc(c.leasingTxt)+' of GCC office space</span></div>'+cityScene(c.id)+'</div>';
+ h+='<div class="cp-grid">'+
+  '<div class="panel"><div class="k">Office rent</div><div class="v">'+ev("rent-"+c.id,"₹"+c.rent)+'</div><span class="hint">per sq ft a month</span></div>'+
+  '<div class="panel"><div class="k">Engineer pay, median</div><div class="v">'+ev("sal-"+c.id,"₹"+c.eng+" L")+'</div><span class="hint">₹'+c.sen+' lakh for 6+ years</span></div>'+
+  '<div class="panel"><div class="k">Talent score</div><div class="v">'+ev("talent-"+c.id,c.talent.toFixed(1))+'</div><span class="hint">Colliers, scale not stated</span></div>'+
+  '<div class="panel"><div class="k">New GCCs in 2026</div><div class="v">'+ev("arrivals",String(c.arrivals))+'</div><span class="hint">Our sample of 22</span></div></div>';
+ h+='<div class="cp-two"><div class="panel"><h3>Where it ranks</h3><p>Share of centres: <b>'+c.units+'%</b> · Office space: <b>'+esc(c.leasingTxt)+'</b> · Activity (JLL): <b>'+esc(c.activityTxt)+'</b> · GCC Index: <b>'+(c.idx||"not given")+'</b></p><p>'+ev("lead-measure","Why the rankings differ")+'</p></div>'+
+  '<div class="panel"><h3>Clusters and incentives</h3><p><b>GCC clusters:</b> '+esc(c.clusters)+' '+ev("clusters","Sources")+'</p><p><b>State support:</b> '+esc(c.policy)+'</p></div></div>';
+ h+='<div class="panel"><h3>New GCCs here in 2026</h3>'+(arr.length?'<div class="feed" style="margin-top:8px">'+arr.map(a=>'<div class="ev-card"><div class="top"><b>'+esc(a[1])+'</b><span class="chip stg-'+a[4].split(" ")[0]+'">'+esc(a[4])+'</span></div><span class="what">'+esc(a[3])+'</span><span class="city">'+esc(a[0])+' 2026</span></div>').join("")+'</div>':'<p class="hint">None in our 2026 sample.</p>')+'</div>';
+ h+='<div class="row" style="margin-top:16px"><button class="btn" data-go="plan">Compare with other cities</button><button class="btn ghost" data-go="roadmap" data-road="'+c.id+'">Plan a setup here</button></div>';
+ $("#city-page").innerHTML=h;
+}
+$("#city-pick").addEventListener("click",e=>{const b=e.target.closest("button[data-cp]");if(!b)return;cityId=b.dataset.cp;renderCity();});
+
+
+// Landmark silhouettes, viewBox 0 0 120 80, ground y=74. fill = currentColor
+const LM={
+blr:`<rect x="8" y="52" width="104" height="22"/><rect x="34" y="40" width="52" height="14"/><path d="M44 40 A16 16 0 0 1 76 40Z"/><rect x="58.5" y="14" width="3" height="10"/><circle cx="60" cy="13" r="2.4"/><path d="M14 52 A6 6 0 0 1 26 52Z"/><path d="M94 52 A6 6 0 0 1 106 52Z"/><g fill="var(--lmw,#fff)" opacity=".55">${[14,22,30,38,46,54,62,70,78,86,94,102].map(x=>`<rect x="${x}" y="57" width="3" height="14"/>`).join('')}</g><rect x="4" y="72" width="112" height="3"/>`,
+hyd:`<rect x="36" y="34" width="48" height="40"/><path d="M48 74 V56 A12 12 0 0 1 72 56 V74Z" fill="var(--lmw,#fff)" opacity=".55"/><rect x="36" y="30" width="48" height="5"/>${[30,84].map(x=>`<rect x="${x}" y="12" width="6" height="62"/><rect x="${x-1.5}" y="26" width="9" height="2.4"/><rect x="${x-1.5}" y="42" width="9" height="2.4"/><path d="M${x-1} 12 A4 4 0 0 1 ${x+7} 12Z"/><rect x="${x+2.4}" y="4" width="1.4" height="5"/>`).join('')}<path d="M52 30 A8 8 0 0 1 68 30Z"/><rect x="26" y="72" width="68" height="3"/>`,
+pune:`<rect x="10" y="42" width="100" height="32"/>${Array.from({length:17},(_,i)=>`<rect x="${10+i*6}" y="37" width="3.5" height="6"/>`).join('')}${[20,100].map(x=>`<rect x="${x-10}" y="28" width="20" height="46"/><path d="M${x-10} 28 A10 10 0 0 1 ${x+10} 28Z"/><rect x="${x-.7}" y="14" width="1.4" height="5"/>`).join('')}<path d="M50 74 V54 L60 44 L70 54 V74Z" fill="var(--lmw,#fff)" opacity=".55"/><rect x="4" y="72" width="112" height="3"/>`,
+chn:`<path d="M30 74 L36 56 H84 L90 74Z"/><path d="M38 56 L43 44 H77 L82 56Z"/><path d="M45 44 L49 33 H71 L75 44Z"/><path d="M51 33 L54 24 H66 L69 33Z"/><path d="M54 24 Q60 12 66 24Z"/>${[58,60,62].map(x=>`<rect x="${x-.5}" y="10" width="1" height="5"/>`).join('')}<path d="M52 74 V64 A8 8 0 0 1 68 64 V74Z" fill="var(--lmw,#fff)" opacity=".55"/><g fill="var(--lmw,#fff)" opacity=".4"><rect x="40" y="60" width="40" height="1.5"/><rect x="46" y="48" width="28" height="1.5"/><rect x="51" y="37" width="18" height="1.2"/></g><rect x="20" y="72" width="80" height="3"/>`,
+ncr:`<rect x="40" y="18" width="40" height="56"/><rect x="36" y="14" width="48" height="6"/><rect x="42" y="9" width="36" height="5"/><path d="M52 9 Q60 3 68 9Z"/><path d="M49 74 V44 A11 11 0 0 1 71 44 V74Z" fill="var(--lmw,#fff)" opacity=".55"/><rect x="30" y="72" width="60" height="3"/>`,
+mum:`<rect x="28" y="30" width="64" height="44"/><path d="M48 74 V50 A12 12 0 0 1 72 50 V74Z" fill="var(--lmw,#fff)" opacity=".55"/><rect x="26" y="26" width="68" height="5"/>${[30,86].map(x=>`<rect x="${x-2}" y="14" width="8" height="13"/><path d="M${x-3} 14 A5 5 0 0 1 ${x+7} 14Z"/>`).join('')}${[46,70].map(x=>`<rect x="${x-2}" y="18" width="7" height="9"/><path d="M${x-3} 18 A4.5 4.5 0 0 1 ${x+6} 18Z"/>`).join('')}<path d="M52 26 A8 8 0 0 1 68 26Z"/><g fill="var(--lmw,#fff)" opacity=".45">${[33,39,79,85].map(x=>`<rect x="${x}" y="40" width="3" height="10"/>`).join('')}</g><rect x="18" y="72" width="84" height="3"/>`
+};
+
+
+function lm(id,cls){return '<svg viewBox="0 0 120 80" class="lm '+(cls||"")+'" aria-hidden="true"><g fill="currentColor">'+LM[id]+'</g></svg>';}
+function rnd(seed){let x=seed;return()=>{x=(x*9301+49297)%233280;return x/233280;};}
+function skyline(seed,w,h,base,col){const r=rnd(seed);let out='',x=0;while(x<w){const bw=18+r()*34,bh=26+r()*(h*.55);out+='<rect x="'+x.toFixed(0)+'" y="'+(base-bh).toFixed(0)+'" width="'+bw.toFixed(0)+'" height="'+bh.toFixed(0)+'" fill="'+col+'"/>';
+ if(r()>.45){for(let wy=base-bh+8;wy<base-8;wy+=10)for(let wx=x+5;wx<x+bw-6;wx+=8)if(r()>.55)out+='<rect class="win" x="'+wx.toFixed(0)+'" y="'+wy.toFixed(0)+'" width="3" height="4" style="animation-delay:'+(r()*6).toFixed(1)+'s"/>';}
+ x+=bw+2+r()*6;}return out;}
+function cityScene(id){
+ return '<svg class="scene" viewBox="0 0 640 210" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">'+
+ '<circle class="sun" cx="470" cy="70" r="34"/>'+
+ '<g class="cloud c1"><ellipse cx="120" cy="50" rx="34" ry="11"/><ellipse cx="140" cy="42" rx="20" ry="12"/></g>'+
+ '<g class="cloud c2"><ellipse cx="560" cy="34" rx="28" ry="9"/><ellipse cx="575" cy="28" rx="15" ry="9"/></g>'+
+ '<g class="bird"><path d="M300 60 q6 -6 12 0 q6 -6 12 0"/><path d="M330 48 q4 -4 8 0 q4 -4 8 0"/></g>'+
+ skyline(id.charCodeAt(0)*7+id.length,640,210,196,"var(--sky2)")+
+ '<svg x="350" y="40" width="231" height="154" viewBox="0 0 120 80" class="lm-big"><g fill="currentColor">'+LM[id]+'</g></svg>'+
+ '<rect x="0" y="194" width="640" height="16" fill="var(--ground)"/></svg>';}
+function heroScene(){
+ return '<svg class="hero-ill" viewBox="0 0 420 260" aria-hidden="true">'+
+ '<circle class="sun" cx="330" cy="70" r="40"/>'+
+ skyline(77,420,260,236,"var(--sky2)")+
+ '<svg x="18" y="120" width="150" height="100" viewBox="0 0 120 80" class="lm-mid"><g fill="currentColor">'+LM.hyd+'</g></svg>'+
+ '<svg x="250" y="110" width="160" height="107" viewBox="0 0 120 80" class="lm-mid"><g fill="currentColor">'+LM.blr+'</g></svg>'+
+ '<rect x="0" y="234" width="420" height="26" fill="var(--ground)"/>'+
+ '<g class="fcard f1"><rect x="132" y="40" width="160" height="78" rx="10"/><rect class="ln" x="146" y="56" width="70" height="6" rx="3"/><text x="146" y="86" class="big">2,117</text><rect class="ok" x="226" y="52" width="54" height="16" rx="8"/><text x="253" y="63.5" class="okt">Checked</text><rect class="ln" x="146" y="98" width="110" height="5" rx="2.5"/></g>'+
+ '<g class="fcard f2"><rect x="40" y="18" width="118" height="58" rx="9"/><text x="52" y="44" class="mid">₹76.8</text><rect class="bad" x="52" y="54" width="92" height="14" rx="7"/><text x="98" y="64" class="badt">Sources disagree</text></g>'+
+ '<g class="fcard f3"><rect x="292" y="120" width="112" height="56" rx="9"/><text x="304" y="146" class="mid">22 new</text><rect class="ln" x="304" y="156" width="76" height="5" rx="2.5"/></g>'+
+ '<g class="lens"><circle cx="218" cy="160" r="26" class="glass"/><circle cx="218" cy="160" r="26" class="rim"/><rect x="236" y="178" width="34" height="9" rx="4.5" transform="rotate(45 236 178)" class="handle"/><path d="M206 160 l8 8 l16 -18" class="tick"/></g>'+
+ '</svg>';}
+function roadScene(){
+ const P="M10 100 C 80 100, 90 40, 170 52 S 270 100, 350 30";
+ return '<svg class="road-ill" viewBox="0 0 360 120" aria-hidden="true"><path class="road" d="'+P+'"/>'+
+ [[40,98,"Decide"],[150,52,"Register"],[250,78,"Run"],[338,36,"Exit plan"]].map(([x,y,t],i)=>'<g class="flag" style="animation-delay:'+(i*.25)+'s"><rect x="'+(x-1)+'" y="'+(y-28)+'" width="2" height="28"/><path d="M'+(x+1)+' '+(y-28)+' h18 l-5 6 l5 6 h-18Z"/><circle cx="'+x+'" cy="'+y+'" r="4" class="dot"/><text x="'+(x+4)+'" y="'+(y+16)+'" text-anchor="middle">'+t+'</text></g>').join("")+
+ '<circle class="walker" r="5"><animateMotion dur="7s" repeatCount="indefinite" path="'+P+'"/></circle></svg>';}
+
+/* ---------- OVERVIEW ---------- */
+const NEXT={"gcc-count":"Agree one definition of an active GCC; check against company filings","lead-measure":"Show every ranking; let the user pick the measure","leasing-2025":"Match the periods (calendar vs financial year)","sal-hyd":"Compare the same role and seniority","sal-blr":"Compare the same role and seniority","policy-mh":"Read the policy text itself","tier2":"Use one definition of tier-2","exit-time":"Track real closure times from company filings","ansr":"Check claimed GCCs against company records","eor-fees":"Collect sample invoices from each EOR"};
+function renderOverview(){
+ $("#ov-art").innerHTML=heroScene();$("#road-art").innerHTML=roadScene();
+ const nF=Object.keys(F).length,nBad=Object.values(F).filter(f=>f.status==="bad").length,nS=Object.keys(S).length;
+ $("#side-count").textContent=nF+" facts · "+nS+" sources";
+ $("#kb").textContent=nF+" checked facts from "+nS+" sources";
+ const st=[["GCCs in India","▤","2,117","Parent companies (Nasscom-Zinnov). Other counts run from 536 to 2,800","gcc-count"],["New GCCs in 2026","✦","22","Tracked so far: Hyderabad 9, Bengaluru 5, Chennai 5","arrivals"],["Facts in the ledger","✓",String(nF),nBad+" where sources disagree, shown openly",null],["Lowest office rent","◎","₹76.8","Hyderabad, per sq ft a month (CRE Matrix)","rent-hyd"]];
+ $("#ostats").innerHTML=st.map(x=>'<button class="ostat" '+(x[4]?'data-fact="'+x[4]+'"':'data-go="facts"')+'><span class="k">'+esc(x[0])+'<i aria-hidden="true">'+x[1]+'</i></span><span class="v stat-n">'+esc(x[2])+'</span><span class="n">'+esc(x[3])+'</span></button>').join("");
+ // map
+ const P={blr:[136.5,372.1],hyd:[149.3,304.2],pune:[83.4,286.8],chn:[174.7,370.4],ncr:[131.1,131.9],mum:[69.5,278.2]};
+ const lab={blr:[-10,4,"end"],hyd:[11,4,"start"],pune:[9,14,"start"],chn:[11,4,"start"],ncr:[11,4,"start"],mum:[-9,-6,"end"]};
+ let g='';for(let y=120;y<400;y+=40)g+='<line class="grid" x1="16" x2="244" y1="'+y+'" y2="'+y+'"/>';for(let x=40;x<244;x+=40)g+='<line class="grid" y1="112" y2="402" x1="'+x+'" x2="'+x+'"/>';
+ g+=CITIES.map((c,i)=>{const [x,y]=P[c.id],r=4+Math.sqrt(c.leasing)*1.9,[dx,dy,an]=lab[c.id];return '<g class="city" data-city="'+c.id+'" data-go="cities" tabindex="0" role="button" aria-label="'+esc(c.name)+'"><circle class="halo" cx="'+x+'" cy="'+y+'" r="'+r+'" style="animation-delay:'+(i*.35)+'s"/><circle class="core" cx="'+x+'" cy="'+y+'" r="'+r*.62+'"/><text x="'+(x+dx)+'" y="'+(y+dy)+'" text-anchor="'+an+'">'+esc(c.name)+'</text><title>'+esc(c.name)+': '+esc(c.leasingTxt)+' of GCC office space</title></g>';}).join("");
+ $("#omap").innerHTML=g;
+ let t='<thead><tr><th>City</th><th>Rent ₹/sq ft</th><th>Median pay ₹L</th><th>New 2026</th></tr></thead><tbody>';
+ [...CITIES].sort((a,b)=>b.leasing-a.leasing).forEach(c=>{t+='<tr data-city="'+c.id+'" data-go="cities"><td><div class="cityc">'+lm(c.id,"ico2")+'<div><b>'+esc(c.name)+'</b><div class="hint">'+esc(c.leasingTxt)+' of GCC office space</div></div></div></td><td class="num">'+c.rent+'</td><td class="num">'+c.eng+'</td><td class="num">'+c.arrivals+'</td></tr>';});
+ $("#otable").innerHTML=t+'</tbody>';
+ const hl=(id,on)=>{document.querySelectorAll('#omap .city[data-city="'+id+'"],#otable tr[data-city="'+id+'"]').forEach(el=>el.classList.toggle("on",on));};
+ ["#omap","#otable"].forEach(sel=>{$(sel).addEventListener("pointerover",e=>{const el=e.target.closest("[data-city]");if(el)hl(el.dataset.city,true);});$(sel).addEventListener("pointerout",e=>{const el=e.target.closest("[data-city]");if(el)hl(el.dataset.city,false);});});
+ // next decision
+ const NQ=[["Which city fits a 100-person banking GCC?","plan-bfsi"],["Should we start with an EOR or our own company?","road-eor"],["How long would leaving India take?","fact-exit"]];
+ $("#next-q").innerHTML=NQ.map(([q,k])=>'<button type="button" data-nq="'+k+'"><span>'+esc(q)+'</span><span aria-hidden="true">→</span></button>').join("");
+ $("#next-q").addEventListener("click",e=>{const b=e.target.closest("[data-nq]");if(!b)return;const k=b.dataset.nq;
+  if(k==="plan-bfsi"){$("#p-ind").value="bfsi";$("#p-team").value=100;renderPlan();go("plan");}
+  else if(k==="road-eor"){route="eor";[...$("#r-route").children].forEach(x=>x.setAttribute("aria-pressed",x.dataset.r==="eor"));renderRoad();go("roadmap");}
+  else openFact("exit-time");});
+ // sources
+ const SRC=[["NZ","nz","gcc-count","Checked"],["CM","cre","rent-hyd","Checked"],["JL","jllHyd","ind-pharma","Checked"],["AN","ansr","ansr","Seller's own claim"],["ES","es","exit-time","Checked"]];
+ $("#srclist").innerHTML=SRC.map(([lg,sid,fid,stt])=>'<button class="srci" data-fact="'+fid+'"><span class="lg">'+lg+'</span><span class="t"><b>'+esc(S[sid].name)+'</b><span>'+esc(S[sid].title)+' · '+esc(S[sid].date)+'</span></span><span class="chip '+(stt==="Checked"?"s-ok":"s-self")+'">'+stt+'</span></button>').join("");
+ // attention
+ const att=Object.values(F).filter(f=>NEXT[f.id]);
+ $("#attn").innerHTML='<thead><tr><th style="width:44%">Claim</th><th style="width:20%">Status</th><th style="width:36%">What we check next</th></tr></thead><tbody>'+att.map(f=>'<tr data-fact="'+f.id+'"><td><b>'+esc(f.q)+'</b><div class="hint num">'+esc(f.range)+'</div></td><td>'+chip(f.status)+'</td><td class="hint">'+esc(NEXT[f.id])+'</td></tr>').join("")+'</tbody>';
+ $("#minifeed").innerHTML=ARRIVALS.slice(0,5).map(a=>'<div class="mf"><span class="w"><b>'+esc(a[1])+'</b><span class="c">'+esc(a[3])+' · '+esc(a[2].split(" ").map(x=>CN[x]).join(" and "))+' · '+esc(a[0])+'</span></span><span class="chip stg-'+a[4].split(" ")[0]+'">'+esc(a[4])+'</span></div>').join("");
+}
+/* ---------- SEARCH ---------- */
+function searchIndex(){
+ const items=[];
+ CITIES.forEach(c=>items.push({k:"City page",t:c.name,go:"cities",city:c.id}));
+ Object.values(F).forEach(f=>items.push({k:"Fact · "+STATUS[f.status].label,t:f.q,fact:f.id,extra:f.range+" "+f.values.map(v=>S[v[0]].name).join(" ")}));
+ ARRIVALS.forEach(a=>items.push({k:"New GCC · "+a[4],t:a[1]+" — "+a[2].split(" ").map(x=>CN[x]).join(" and "),go:"cities",city:a[2].split(" ")[0]}));
+ [["Setup roadmap","roadmap","EOR directors RBI deadline exit"],["Compare cities","plan","cost salary rent planner"],["Ask GroundTruth","ask","AI assistant question"]].forEach(([t,g,x])=>items.push({k:"Tool",t,go:g,extra:x}));
+ return items;}
+const SIDX=searchIndex();
+$("#gsearch").addEventListener("input",()=>{const q=$("#gsearch").value.trim().toLowerCase();const box=$("#sresults");if(!q){box.hidden=true;return;}
+ const res=SIDX.filter(i=>(i.t+" "+(i.extra||"")).toLowerCase().includes(q)).slice(0,8);
+ box.innerHTML=res.length?res.map((r,i)=>'<button type="button" data-i="'+SIDX.indexOf(r)+'"><span>'+esc(r.t)+'</span><span class="k">'+esc(r.k)+'</span></button>').join(""):'<p class="hint" style="padding:8px">Nothing matches “'+esc(q)+'” yet.</p>';box.hidden=false;});
+$("#sresults").addEventListener("click",e=>{const b=e.target.closest("[data-i]");if(!b)return;const r=SIDX[+b.dataset.i];$("#sresults").hidden=true;$("#gsearch").value="";
+ if(r.fact)openFact(r.fact);else{if(r.city){cityId=r.city;renderCity();}go(r.go);}});
+document.addEventListener("click",e=>{if(!e.target.closest(".search"))$("#sresults").hidden=true;});
+$("#gsearch").addEventListener("keydown",e=>{if(e.key==="Enter"){const f=$("#sresults button");if(f)f.click();}if(e.key==="Escape")$("#sresults").hidden=true;});
+/* ---------- motion helpers ---------- */
+const RM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function flash(sel){const el=$(sel);if(!el||RM)return;[...el.querySelectorAll(".ev-card,ol.steps li")].forEach((x,i)=>x.style.setProperty("--i",i%24));el.classList.remove("anim");void el.offsetWidth;el.classList.add("anim");setTimeout(()=>el.classList.remove("anim"),1400);}
+function splitHero(){const h=$(".hero-h");if(!h||h.dataset.split)return;h.dataset.split="1";let i=0;const wrap=t=>t.trim().split(/\s+/).filter(Boolean).map(w=>'<span class="w" style="--i:'+(i++)+'">'+esc(w)+'</span>').join(" ");const hl=h.querySelector(".hl");const before=h.firstChild.textContent;h.innerHTML=wrap(before)+' <span class="hl">'+wrap(hl?hl.textContent:"")+'</span>';}
+function countUp(el){if(RM||el.dataset.counted)return;el.dataset.counted="1";const orig=el.textContent;const nums=[];orig.replace(/\d[\d,]*(?:\.\d+)?/g,m=>{nums.push(m);return m;});if(!nums.length)return;const t0=performance.now(),dur=1100;
+ function fmt(m,p){const dec=(m.split(".")[1]||"").length;const v=parseFloat(m.replace(/,/g,""))*p;let s=v.toFixed(dec);if(m.includes(",")){const [a,b]=s.split(".");s=a.replace(/\B(?=(\d{3})+(?!\d))/g,",")+(b?"."+b:"");}return s;}
+ function step(t){const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);let k=0;el.textContent=orig.replace(/\d[\d,]*(?:\.\d+)?/g,m=>fmt(nums[k++],e));if(p<1)requestAnimationFrame(step);else el.textContent=orig;}
+ requestAnimationFrame(step);}
+const REVEAL=".ostat,.ov-cities,.next-card,.ov-side .panel,.ov-grid2 .panel,.ask-side .panel,.sec-h,.sec .lede,.stat,.ev-card,.ind,.tool,.plan,.aud .panel,.faq details,.rule,ol.how li,.closing,#rank-table tbody tr,.fact,.page-h,.panel,.compare .panel,.cp-grid .panel,.foot-cols>div";
+let io=null;
+function armReveal(){
+ if(RM||!("IntersectionObserver" in window))return;
+ if(!io)io=new IntersectionObserver(ents=>{ents.forEach(en=>{if(!en.isIntersecting)return;const el=en.target;io.unobserve(el);
+  const sib=el.parentElement?[...el.parentElement.children].indexOf(el):0;el.style.transitionDelay=(Math.min(sib,6)*70)+"ms";el.classList.remove("pre");
+  setTimeout(()=>{el.style.transitionDelay="";},1200);
+  el.querySelectorAll(".stat-n,.cb-n").forEach(countUp);if(el.matches(".stat"))el.querySelectorAll(".stat-n").forEach(countUp);
+  el.querySelectorAll("td.lead").forEach(td=>td.classList.add("lit"));});},{threshold:.12,rootMargin:"0px 0px -6% 0px"});
+ const vh=window.innerHeight;
+ document.querySelectorAll(REVEAL).forEach(el=>{if(el.dataset.rv||el.closest("[hidden]")||el.closest(".hero"))return;const r=el.getBoundingClientRect();if(r.top<vh*0.92){el.dataset.rv="1";return;}
+  el.dataset.rv="1";el.classList.add("rv","pre");io.observe(el);});
+}
+
+/* ---------- bold motion: net, ticker, tilt, magnet, progress, word headings ---------- */
+function buildTicker(){const t=$("#ticker");if(!t)return;const items=ARRIVALS.map(a=>'<span class="tk"><span class="chip stg-'+a[4].split(" ")[0]+'">'+esc(a[4])+'</span><b>'+esc(a[1])+'</b>'+esc(a[2].split(" ").map(x=>CN[x]).join(" and "))+' · '+esc(a[0])+'</span>').join("");t.innerHTML=items+items;}
+function splitHeads(){document.querySelectorAll(".sec-h").forEach(h=>{if(h.dataset.split||RM)return;h.dataset.split="1";h.innerHTML=h.textContent.trim().split(/\s+/).map((w,i)=>'<span class="w2" style="--i:'+i+'">'+esc(w)+'</span>').join(" ");
+ const o=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){h.classList.add("words-in");o.disconnect();}}),{threshold:.3});o.observe(h);});}
+function heroNet(){
+ const c=$("#hero-net");if(!c||RM)return;const ctx=c.getContext("2d");let W=0,H=0,pts=[],raf=0,vis=true,mx=-999,my=-999;
+ const dpr=Math.min(2,window.devicePixelRatio||1);
+ function size(){const r=c.getBoundingClientRect();W=r.width;H=r.height;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);const n=Math.round(Math.min(70,W*H/16000));pts=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.8+1}));}
+ const acc=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()||"#A85A16";
+ function frame(){ctx.clearRect(0,0,W,H);
+  for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;const dx=p.x-mx,dy=p.y-my,d=Math.hypot(dx,dy);if(d<120){p.x+=dx/d*0.8;p.y+=dy/d*0.8;}}
+  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const a=pts[i],b=pts[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<130){ctx.strokeStyle="rgba(168,90,22,"+(0.16*(1-d/130))+")";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}
+  ctx.fillStyle=acc;for(const p of pts){ctx.globalAlpha=.35;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}ctx.globalAlpha=1;
+  raf=vis?requestAnimationFrame(frame):0;}
+ size();addEventListener("resize",()=>{size();});
+ c.parentElement.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top;});
+ c.parentElement.addEventListener("pointerleave",()=>{mx=my=-999;});
+ new IntersectionObserver(es=>{vis=es[0].isIntersecting&&!$("#view-home").hidden;if(vis&&!raf)raf=requestAnimationFrame(frame);}).observe(c);
+ raf=requestAnimationFrame(frame);}
+function tilt(){
+ if(RM||!matchMedia("(hover:hover)").matches)return;
+ document.addEventListener("pointermove",e=>{const el=e.target.closest(".tool,.plan,.ind,.hero-card,.aud .panel");
+  document.querySelectorAll(".tilting").forEach(x=>{if(x!==el){x.classList.remove("tilting");x.style.transform="";}});
+  if(!el)return;const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width,py=(e.clientY-r.top)/r.height;
+  el.style.setProperty("--mx",(px*100)+"%");el.style.setProperty("--my",(py*100)+"%");
+  if(!el.classList.contains("hero-card")||true){el.classList.add("tilting","tilt");el.style.transform="perspective(800px) rotateX("+((.5-py)*7)+"deg) rotateY("+((px-.5)*9)+"deg) translateY(-4px)";}});
+ document.querySelectorAll(".btn").forEach(b=>{b.classList.add("mag");b.addEventListener("pointermove",e=>{const r=b.getBoundingClientRect();b.style.transform="translate("+((e.clientX-r.left-r.width/2)*.18)+"px,"+((e.clientY-r.top-r.height/2)*.28)+"px)";});b.addEventListener("pointerleave",()=>{b.style.transform="";});});
+}
+function settleAnims(){document.querySelectorAll(".hero-card,.view-in").forEach(el=>el.addEventListener("animationend",()=>{el.style.animation="none";},{once:true}));}
+function scrollFx(){
+ const bar=$("#progress"),card=$(".hero-card");let tick=false;
+ function upd(){tick=false;const h=document.documentElement,max=h.scrollHeight-innerHeight;if(bar)bar.style.transform="scaleX("+(max>0?scrollY/max:0)+")";
+  if(card&&!RM&&!$("#view-home").hidden&&!card.classList.contains("tilting"))card.style.transform="translateY("+(Math.min(scrollY,600)*-0.08)+"px)";}
+ addEventListener("scroll",()=>{if(!tick){tick=true;requestAnimationFrame(upd);}},{passive:true});upd();}
+/* ---------- boot ---------- */
+try{const saved=JSON.parse(load("plan")||"null");if(saved){$("#p-ind").value=saved.ind;$("#p-team").value=saved.n;$("#p-sen").value=saved.s;$("#p-sqft").value=saved.sq;}}catch(e){}
+renderPlan();renderRoad();renderFacts();renderRank();renderFeed();renderInds();renderCity();renderOverview();splitHero();buildTicker();splitHeads();heroNet();tilt();scrollFx();settleAnims();
+const h=(location.hash||"").slice(1);show(TABS.includes(h)?h:"overview");requestAnimationFrame(()=>{armReveal();if(!RM)setTimeout(()=>document.querySelectorAll(".hero .cb-n").forEach(countUp),700);});
+if(window.claude&&window.claude.use){
+ window.claude.use("sample").then(s=>{sample=s;if(!s)$("#ask-note").textContent="Live AI runs in the hosted prototype on claude.ai. In this copy, browse the facts directly.";}).catch(()=>{});
+ window.claude.use("downloads").then(d=>{downloads=d;if(!d){$("#p-brief").hidden=true;$("#r-dl").hidden=true;}}).catch(()=>{});
+}else{$("#ask-note").textContent="Ask GroundTruth runs when this page is opened in Claude.";$("#p-brief").hidden=true;$("#r-dl").hidden=true;}
+})();
+</script>
+
+</body></html>
